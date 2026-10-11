@@ -3,7 +3,10 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 REPO_NAME="${REPO_NAME:-bluestar-cricket-tournament}"
-GH="${GH:-/opt/homebrew/bin/gh}"
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+GH="${GH:-$ROOT/scripts/gh.sh}"
+export GH_CONFIG_DIR="${GH_CONFIG_DIR:-$HOME/.gh-config}"
+mkdir -p "$GH_CONFIG_DIR"
 
 echo "Waiting for GitHub CLI login (complete https://github.com/login/device in your browser)…"
 for i in $(seq 1 120); do
