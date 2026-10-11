@@ -23,9 +23,25 @@ Share that HTTPS URL. Set `PUBLIC_ORIGIN` in `.env.docker` to that URL and resta
 | Spring Boot + uploads | [Render](https://render.com) | `https://bluestar-api.onrender.com` |
 | MySQL | Render private service | internal only |
 
+### Step 0 — GitHub CLI (one time)
+
+In a terminal:
+
+```bash
+gh auth login
+# Choose: GitHub.com → SSH → Login with a web browser
+# Open https://github.com/login/device and paste the one-time code
+```
+
+Or run (auto-pushes when login completes):
+
+```bash
+./scripts/wait-gh-and-push.sh
+```
+
 ### Step A — Push code to GitHub
 
-Render and Vercel deploy from Git. Create a repo and push this project (no `.env` files).
+Render and Vercel deploy from Git. The push script creates **`deepkx/bluestar-cricket-tournament`** (public) if it does not exist yet.
 
 ### Step B — Render (backend)
 
