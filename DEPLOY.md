@@ -45,8 +45,9 @@ Render and Vercel deploy from Git. The push script creates **`deepkx/bluestar-cr
 
 ### Step B — Render (backend)
 
-1. [Dashboard → Blueprints](https://dashboard.render.com/blueprints) → **New Blueprint Instance**.
-2. Connect the GitHub repo; Render reads **`render.yaml`**.
+**One-click:** [Deploy to Render](https://render.com/deploy?repo=https://github.com/deepkx/bluestar-cricket-tournament) (sign in with GitHub, approve repo access).
+
+Or: [Dashboard → Blueprints](https://dashboard.render.com/blueprints) → **New Blueprint Instance** → connect **`deepkx/bluestar-cricket-tournament`** (`render.yaml`).
 3. When prompted, set sync env vars:
    - **`ADMIN_QUICK_PASSWORD`** — e.g. `0908` (site Admin menu).
    - **`CORS_ALLOWED_ORIGINS`** — your Vercel URL, e.g. `https://bluestar-cricket.vercel.app` (no trailing slash).
