@@ -1,0 +1,13 @@
+.env
+.env.local
+.env.docker
+backend/.env
+frontend/.env
+backend/uploads/
+data/
+.tools/
+*.zip
+.DS_Store
+node_modules/
+backend/target/
+frontend/dist/

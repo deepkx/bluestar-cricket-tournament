@@ -1,0 +1,71 @@
+# Render Blueprint: MySQL (private) + Spring Boot API (public).
+# Connect repo at https://dashboard.render.com/blueprints → New Blueprint Instance.
+# After deploy, set CORS + deploy frontend on Vercel with VITE_API_BASE_URL = API URL.
+
+services:
+  - type: pserv
+    name: bluestar-mysql
+    runtime: docker
+    repo: https://github.com/render-examples/mysql.git
+    branch: master
+    envVars:
+      - key: MYSQL_DATABASE
+        value: bluestar_tournament
+      - key: MYSQL_USER
+        value: bluestar
+      - key: MYSQL_PASSWORD
+        generateValue: true
+      - key: MYSQL_ROOT_PASSWORD
+        generateValue: true
+    disk:
+      name: mysql-data
+      mountPath: /var/lib/mysql
+      sizeGB: 10
+
+  - type: web
+    name: bluestar-api
+    runtime: docker
+    dockerfilePath: deploy/Dockerfile.backend
+    dockerContext: .
+    plan: starter
+    healthCheckPath: /api/v1/tournaments/current
+    disk:
+      name: upload-data
+      mountPath: /app/uploads
+      sizeGB: 1
+    envVars:
+      - key: MYSQL_HOST
+        fromService:
+          type: pserv
+          name: bluestar-mysql
+          property: host
+      - key: MYSQL_PORT
+        fromService:
+          type: pserv
+          name: bluestar-mysql
+          property: port
+      - key: MYSQL_DATABASE
+        value: bluestar_tournament
+      - key: MYSQL_USER
+        value: bluestar
+      - key: MYSQL_PASSWORD
+        fromService:
+          type: pserv
+          name: bluestar-mysql
+          envVarKey: MYSQL_PASSWORD
+      - key: SERVER_PORT
+        value: "8080"
+      - key: UPLOAD_DIR
+        value: /app/uploads
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ADMIN_BOOTSTRAP_EMAIL
+        value: admin@bluestar.local
+      - key: ADMIN_BOOTSTRAP_PASSWORD
+        generateValue: true
+      - key: ADMIN_QUICK_PASSWORD
+        sync: false
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+      - key: REGISTRATION_TEST_MIN_SQUAD
+        value: "false"

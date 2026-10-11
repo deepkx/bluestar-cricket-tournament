@@ -1,0 +1,12 @@
+.git
+.env
+.env.*
+!.env.docker.example
+backend/target
+backend/uploads
+backend/.env
+frontend/node_modules
+frontend/dist
+data
+*.zip
+**/.DS_Store

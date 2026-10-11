@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <radialGradient id="lights" cx="50%" cy="28%" r="75%">
+      <stop offset="0%" stop-color="#1a221c"/>
+      <stop offset="100%" stop-color="#080c0a"/>
+    </radialGradient>
+  </defs>
+  <rect width="1920" height="1080" fill="url(#lights)"/>
+  <!-- Pitch oval + crease (top-down), no wave arcs -->
+  <g fill="none" stroke="#333" stroke-width="2">
+    <ellipse cx="960" cy="820" rx="720" ry="140"/>
+    <ellipse cx="960" cy="820" rx="480" ry="90" opacity="0.6"/>
+  </g>
+  <g fill="none" stroke="#444" stroke-width="1.5">
+    <rect x="880" y="680" width="160" height="280" fill="#0c0c0c" stroke="#555"/>
+    <line x1="820" y1="720" x2="1100" y2="720" stroke="#666"/>
+    <line x1="820" y1="920" x2="1100" y2="920"/>
+    <line x1="880" y1="700" x2="880" y2="940"/>
+    <line x1="1040" y1="700" x2="1040" y2="940"/>
+  </g>
+  <rect x="0" y="0" width="1920" height="1080" fill="#000" opacity="0.35"/>
+</svg>

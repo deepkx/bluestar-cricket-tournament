@@ -1,0 +1,282 @@
+@import "tailwindcss";
+
+@theme {
+  /* Turf noir base (no bright grass — green only in UI chrome) */
+  --color-ink: #0d1410;
+  --color-ink-deep: #080c0a;
+  --color-turf: #121a16;
+  --color-turf-raised: #1a221c;
+  --color-paper: #faf8f5;
+  --color-chalk: #e2e6e0;
+  --color-muted: #7a8a80;
+  --color-floodlight: #e5a017;
+  --color-floodlight-bright: #f5b832;
+  --color-floodlight-dim: #a6710d;
+  --font-display: "Bebas Neue", "Segoe UI", sans-serif;
+  --font-body: "DM Sans", system-ui, sans-serif;
+  --font-mono: ui-monospace, "Cascadia Code", monospace;
+}
+
+html, body, #root {
+  min-height: 100%;
+  background: var(--color-ink);
+  color: var(--color-paper);
+  font-family: var(--font-body);
+}
+
+body {
+  overflow-x: hidden;
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+.noise-overlay {
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+}
+
+.btn-primary {
+  @apply inline-block bg-floodlight px-8 py-3.5 font-semibold text-black transition hover:bg-floodlight-bright;
+}
+
+.btn-outline {
+  @apply inline-block border border-paper/45 px-8 py-3.5 font-medium text-paper transition;
+}
+
+.btn-outline:hover {
+  border-color: var(--color-floodlight);
+  color: var(--color-floodlight-bright);
+  background: transparent;
+}
+
+.btn-primary-dark {
+  @apply inline-block bg-turf-raised px-8 py-3.5 font-semibold text-paper transition hover:bg-turf;
+}
+
+.form-label {
+  @apply block text-sm font-medium text-paper/75;
+}
+
+.form-field {
+  @apply mt-1.5 w-full min-w-0 border border-paper/20 bg-turf-raised px-3 py-2.5 text-base text-paper transition;
+}
+
+.form-field:focus {
+  border-color: var(--color-floodlight);
+  outline: none;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-floodlight) 35%, transparent);
+}
+
+.form-field::placeholder {
+  color: color-mix(in srgb, var(--color-paper) 35%, transparent);
+}
+
+.register-panel {
+  border: 1px solid color-mix(in srgb, var(--color-paper) 15%, transparent);
+  border-top: 2px solid var(--color-floodlight);
+  background: color-mix(in srgb, var(--color-turf) 85%, var(--color-ink-deep));
+}
+
+.pitch-gradient {
+  background: radial-gradient(ellipse 120% 80% at 50% 100%, rgba(36, 58, 44, 0.35) 0%, transparent 55%);
+}
+
+.pitch-floor {
+  background: radial-gradient(ellipse 90% 55% at 50% 100%, rgba(36, 58, 44, 0.25) 0%, transparent 58%);
+}
+
+.hud-label {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--color-paper) 45%, transparent);
+}
+
+.hud-label-dark {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--color-floodlight-dim);
+}
+
+.hud-stat {
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+.pitch-crease-v {
+  width: 1px;
+  align-self: stretch;
+  min-height: 3rem;
+  background: color-mix(in srgb, var(--color-paper) 22%, transparent);
+}
+
+.pitch-crease-h {
+  height: 1px;
+  width: 100%;
+  background: color-mix(in srgb, var(--color-paper) 22%, transparent);
+}
+
+.scoreboard-frame {
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-top: 2px solid var(--color-floodlight);
+  padding: 1rem 1.25rem;
+}
+
+.scoreboard-frame-funk {
+  transform: rotate(-1.25deg);
+  box-shadow: 8px 10px 0 rgba(229, 160, 23, 0.12);
+}
+
+.live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--color-floodlight-bright);
+}
+
+.live-badge::before {
+  content: "";
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 9999px;
+  background: var(--color-floodlight);
+  box-shadow: 0 0 8px rgba(229, 160, 23, 0.75);
+  animation: livePulse 1.4s ease-in-out infinite;
+}
+
+@keyframes livePulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.35; transform: scale(0.85); }
+}
+
+.funk-skew-chip {
+  transform: skewX(-6deg);
+  display: inline-block;
+}
+
+.funk-skew-chip > span {
+  display: inline-block;
+  transform: skewX(6deg);
+}
+
+.hero-crease-slash {
+  position: absolute;
+  left: -10%;
+  right: -10%;
+  bottom: 18%;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(229, 160, 23, 0.15),
+    rgba(255, 255, 255, 0.35),
+    rgba(229, 160, 23, 0.15),
+    transparent
+  );
+  transform: rotate(-3deg);
+  pointer-events: none;
+}
+
+.text-accent {
+  color: var(--color-floodlight-bright);
+}
+
+.text-accent-dim {
+  color: var(--color-floodlight-dim);
+}
+
+.link-accent {
+  color: inherit;
+  text-underline-offset: 4px;
+  transition: color 0.15s ease;
+}
+
+.link-accent:hover {
+  color: var(--color-floodlight-bright);
+}
+
+.section-zig {
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 2rem), 0 100%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live-badge::before {
+    animation: none;
+  }
+}
+
+@media (min-width: 1024px) {
+  .scoreboard-frame {
+    padding: 1.25rem 1.5rem;
+  }
+}
+
+@keyframes floodlightSweep {
+  0% { transform: translateX(-60%) skewX(-8deg); opacity: 0; }
+  20% { opacity: 0.5; }
+  100% { transform: translateX(60%) skewX(-8deg); opacity: 0; }
+}
+
+.floodlight-sweep {
+  background: linear-gradient(
+    100deg,
+    transparent 35%,
+    rgba(229, 160, 23, 0.04) 46%,
+    rgba(245, 184, 50, 0.12) 50%,
+    rgba(229, 160, 23, 0.04) 54%,
+    transparent 65%
+  );
+  animation: floodlightSweep 10s ease-in-out infinite;
+}
+
+@keyframes introBallDelivery {
+  0% { offset-distance: 0%; }
+  100% { offset-distance: 100%; }
+}
+
+.intro-ball {
+  width: 14px;
+  height: 14px;
+  border-radius: 9999px;
+  background: var(--color-paper);
+  box-shadow: 0 0 14px rgba(229, 160, 23, 0.55), 0 0 4px rgba(255, 255, 255, 0.8);
+  offset-path: path("M 8% 74%, Q 50% 12%, 92% 68%");
+  animation: introBallDelivery 1.45s cubic-bezier(0.35, 0, 0.15, 1) forwards;
+}
+
+.intro-ball-ghost {
+  width: 10px;
+  height: 10px;
+  opacity: 0.4;
+  box-shadow: none;
+}
+
+@media (max-width: 639px) {
+  .intro-ball {
+    width: 11px;
+    height: 11px;
+    offset-path: path("M 6% 78%, Q 50% 16%, 94% 70%");
+  }
+
+  .intro-ball-ghost {
+    width: 8px;
+    height: 8px;
+  }
+
+  .btn-primary,
+  .btn-outline {
+    @apply px-5 py-3 text-sm;
+  }
+}
