@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import api from '../api/client';
+import { getCurrentTournament } from '../data/tournament';
 import { PublicPageContent } from '../components/layout/PublicPageContent';
 import { PublicPageHero } from '../components/layout/PublicPageHero';
 import { RevealCountdownBlock } from '../components/ui/RevealCountdownBlock';
@@ -13,7 +13,7 @@ export function PoolsPage() {
   const [tournament, setTournament] = useState<TournamentPublic | null>(null);
 
   useEffect(() => {
-    api.get<TournamentPublic>('/api/v1/tournaments/current').then((r) => setTournament(r.data));
+    getCurrentTournament().then(setTournament);
   }, []);
 
   const revealIso = tournament ? resolvePoolsFixturesRevealIso(tournament.fixtureAnnouncementAt) : null;

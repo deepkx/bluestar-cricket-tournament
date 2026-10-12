@@ -1,7 +1,12 @@
-/** Resolve API upload paths when frontend and API are on different origins in production. */
+import { storagePublicUrl } from '../data/storage';
+
+/** Resolve stored media paths to a browser URL (Supabase public storage or site assets). */
 export function mediaUrl(path: string | null | undefined): string | null {
   if (!path) return null;
-  if (path.startsWith('http') || path.startsWith('data:')) return path;
-  const base = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '';
-  return `${base.replace(/\/$/, '')}${path.startsWith('/') ? path : `/${path}`}`;
+  if (path.startsWith('http') || path.startsWith('data:') || path.startsWith('/')) return path;
+  try {
+    return storagePublicUrl(path);
+  } catch {
+    return null;
+  }
 }

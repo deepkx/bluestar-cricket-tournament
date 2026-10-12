@@ -1,14 +1,10 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
-import { clearAdminSession, setAdminToken } from '../../api/client';
+import { getAdminSession, signOutAdmin } from '../../data/auth';
+import { requireSupabase, supabaseConfigured } from '../../lib/supabase';
 import { AdminGateModal } from './AdminGateModal';
 
-const nav = [
-  { to: '/admin', label: 'Dashboard', end: true },
-  { to: '/admin/teams', label: 'Team board' },
-  { to: '/admin/registrations', label: 'Registrations' },
-  { to: '/admin/settings', label: 'Settings' },
-];
+const nav = [{ to: '/admin/teams', label: 'Team board', end: true }];
 
 type Props = { title: string; children: ReactNode };
 
@@ -18,24 +14,37 @@ export function AdminShell({ title, children }: Props) {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem('admin_token');
-    if (!token) {
+    if (!supabaseConfigured) {
       setGateOpen(true);
       return;
     }
-    setAdminToken(token);
-    setReady(true);
+    const sb = requireSupabase();
+    void getAdminSession().then((session) => {
+      if (!session) {
+        setGateOpen(true);
+        return;
+      }
+      setReady(true);
+    });
+    const { data: sub } = sb.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        setGateOpen(false);
+        setReady(true);
+      } else {
+        setReady(false);
+        setGateOpen(true);
+      }
+    });
+    return () => sub.subscription.unsubscribe();
   }, []);
 
-  const onAuthed = (token: string) => {
-    localStorage.setItem('admin_token', token);
-    setAdminToken(token);
+  const onAuthed = () => {
     setGateOpen(false);
     setReady(true);
   };
 
-  const signOut = () => {
-    clearAdminSession();
+  const signOut = async () => {
+    await signOutAdmin();
     navigate('/');
   };
 
@@ -59,7 +68,7 @@ export function AdminShell({ title, children }: Props) {
             <Link to="/" className="text-sm text-paper/55 hover:text-floodlight-bright">
               View site
             </Link>
-            <button type="button" className="text-sm text-paper/55 hover:text-red-300" onClick={signOut}>
+            <button type="button" className="text-sm text-paper/55 hover:text-red-300" onClick={() => void signOut()}>
               Sign out
             </button>
           </div>
@@ -83,8 +92,7 @@ export function AdminShell({ title, children }: Props) {
           ))}
         </nav>
       </header>
-      <main className="mx-auto max-w-4xl px-4 py-10">{children}</main>
-      <AdminGateModal open={gateOpen} onClose={() => navigate('/')} onSuccess={onAuthed} />
+      <main className="mx-auto max-w-4xl px-4 py-8">{children}</main>
     </div>
   );
 }

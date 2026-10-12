@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api, { apiErrorMessage, setAdminToken } from '../../api/client';
+import { authErrorMessage, getAdminEmail, signInAdminWithPasswordOnly } from '../../data/auth';
+import { supabaseConfigured } from '../../lib/supabase';
 
 type Props = {
   open: boolean;
   onClose: () => void;
-  /** When set, called instead of navigating to /admin after login. */
-  onSuccess?: (token: string) => void;
+  onSuccess?: () => void;
 };
 
 export function AdminGateModal({ open, onClose, onSuccess }: Props) {
@@ -20,20 +20,22 @@ export function AdminGateModal({ open, onClose, onSuccess }: Props) {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    if (!supabaseConfigured) {
+      setError('Supabase is not configured on this deployment.');
+      return;
+    }
     setLoading(true);
     try {
-      const { data } = await api.post<{ token: string }>('/api/v1/admin/auth/quick-login', { password });
+      await signInAdminWithPasswordOnly(password);
       setPassword('');
       if (onSuccess) {
-        onSuccess(data.token);
+        onSuccess();
       } else {
-        localStorage.setItem('admin_token', data.token);
-        setAdminToken(data.token);
         onClose();
-        navigate('/admin');
+        navigate('/admin/teams');
       }
     } catch (err) {
-      setError(apiErrorMessage(err, 'Incorrect password'));
+      setError(authErrorMessage(err, 'Incorrect password'));
     } finally {
       setLoading(false);
     }
@@ -47,7 +49,9 @@ export function AdminGateModal({ open, onClose, onSuccess }: Props) {
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="font-display text-xl tracking-wide text-floodlight-bright">Admin access</h2>
-        <p className="mt-2 text-sm text-paper/60">Enter the admin password to continue.</p>
+        <p className="mt-2 text-sm text-paper/60">
+          Sign in with the tournament admin password ({getAdminEmail()}).
+        </p>
         <input
           type="password"
           className="form-field mt-5"

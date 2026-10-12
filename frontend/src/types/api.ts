@@ -31,7 +31,7 @@ export interface TournamentPublic {
 }
 
 export interface TeamPublic {
-  registrationId: number;
+  registrationId: string;
   teamName: string;
   logoUrl: string | null;
   status: RegistrationStatus;
@@ -53,8 +53,8 @@ export interface MatchPublic {
   bracketSlot: number;
   teamAName: string | null;
   teamBName: string | null;
-  teamARegistrationId: number | null;
-  teamBRegistrationId: number | null;
+  teamARegistrationId: string | null;
+  teamBRegistrationId: string | null;
   scheduledAt: string | null;
   venue: string | null;
   winnerName: string | null;

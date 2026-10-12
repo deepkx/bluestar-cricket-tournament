@@ -1,15 +1,31 @@
 import { useEffect, useMemo, useState } from 'react';
-import api, { apiErrorMessage, clearAdminSession } from '../../api/client';
 import { AdminShell } from '../../components/admin/AdminShell';
 import { PlayerPhotoField } from '../../components/register/PlayerPhotoField';
 import { HOME_EVENT } from '../../content/homeEvent';
-import type { TeamPublic, TournamentPublic } from '../../types/api';
+import {
+  adminAddConfirmedTeam,
+  adminDeleteTeamFromBoard,
+  adminFetchTeamWithPhotosForDownload,
+  adminSaveTeamEdit,
+  approveTeam,
+  getTeamForAdminEdit,
+  listAllTeamsAdmin,
+  listPendingTeamsAdmin,
+  rejectTeam,
+  exportRegistrationsCsv,
+  type AdminTeamSummary,
+} from '../../data/teams';
+import { fetchSiteConfig, updateSiteConfig } from '../../data/tournament';
+import { signOutAdmin } from '../../data/auth';
+import type { TeamPublic } from '../../types/api';
+import { downloadAllTeamsPhotosZip, downloadTeamPhotosZip } from '../../utils/downloadTeamPhotos';
 import { formatRegisteredAt } from '../../utils/formatDateTime';
 import { mediaUrl } from '../../utils/mediaUrl';
 import { buildTeamSlotRows } from '../../utils/teamSlots';
+import { apiErrorMessage } from '../../utils/errors';
 
 type EditPlayer = {
-  id: number | null;
+  id: string | null;
   fullName: string;
   captain: boolean;
   jerseyNumber: string;
@@ -19,52 +35,23 @@ type EditPlayer = {
 };
 
 type EditState = {
-  id: number;
+  id: string;
   teamName: string;
   city: string;
   captainName: string;
   teamLogoUrl: string | null;
   newTeamLogo: File | null;
   players: EditPlayer[];
-  removedPlayerIds: number[];
+  removedPlayerIds: string[];
 };
 
-type AdminRegSummary = { id: number; teamName: string; status: string };
-
-async function fetchConfirmedIdByTeamName(teamName: string): Promise<number | null> {
-  const { data } = await api.get<{ content?: AdminRegSummary[] }>('/api/v1/admin/registrations', {
-    params: { q: teamName, size: 50 },
-  });
-  const rows = data.content ?? [];
-  const match = rows.find((r) => r.teamName === teamName && r.status === 'CONFIRMED');
-  return match?.id ?? null;
-}
-
-async function enrichTeamsWithRegistrationIds(teams: TeamPublic[]): Promise<TeamPublic[]> {
-  if (teams.every((t) => t.registrationId != null && t.registrationId > 0)) {
-    return teams;
-  }
-  try {
-    const { data } = await api.get<{ content?: AdminRegSummary[] }>('/api/v1/admin/registrations', {
-      params: { size: 200 },
-    });
-    const confirmedByName = new Map(
-      (data.content ?? [])
-        .filter((r) => r.status === 'CONFIRMED')
-        .map((r) => [r.teamName, r.id] as const),
-    );
-    return teams.map((t) => ({
-      ...t,
-      registrationId: t.registrationId ?? confirmedByName.get(t.teamName) ?? t.registrationId,
-    }));
-  } catch {
-    return teams;
-  }
-}
-
 export function AdminTeamsPage() {
-  const [tournament, setTournament] = useState<TournamentPublic | null>(null);
+  const [maxTeams, setMaxTeams] = useState(32);
+  const [registrationOpen, setRegistrationOpen] = useState(true);
+  const [testMinSquad, setTestMinSquad] = useState(false);
+  const [siteSaving, setSiteSaving] = useState(false);
   const [teams, setTeams] = useState<TeamPublic[]>([]);
+  const [pending, setPending] = useState<AdminTeamSummary[]>([]);
   const [edit, setEdit] = useState<EditState | null>(null);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -73,21 +60,24 @@ export function AdminTeamsPage() {
   const [newTeamLogo, setNewTeamLogo] = useState<File | null>(null);
   const [newCaptainPhoto, setNewCaptainPhoto] = useState<File | null>(null);
   const [adding, setAdding] = useState(false);
-  const [pendingDelete, setPendingDelete] = useState<{ registrationId: number; teamName: string } | null>(
-    null,
-  );
+  const [pendingDelete, setPendingDelete] = useState<{ registrationId: string; teamName: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [resolvingDelete, setResolvingDelete] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
+  const [bulkDownloading, setBulkDownloading] = useState(false);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   const load = async () => {
     try {
-      const [t, teamList] = await Promise.all([
-        api.get<TournamentPublic>('/api/v1/tournaments/current'),
-        api.get<TeamPublic[]>('/api/v1/teams'),
+      const [cfg, teamList, pendingList] = await Promise.all([
+        fetchSiteConfig(),
+        listAllTeamsAdmin(),
+        listPendingTeamsAdmin(),
       ]);
-      setTournament(t.data);
-      setTeams(await enrichTeamsWithRegistrationIds(teamList.data));
+      setMaxTeams(cfg.max_teams);
+      setRegistrationOpen(cfg.registration_open);
+      setTestMinSquad(cfg.min_squad_size <= 2);
+      setTeams(teamList);
+      setPending(pendingList);
     } catch (err) {
       setError(apiErrorMessage(err, 'Could not load team board'));
     }
@@ -97,36 +87,37 @@ export function AdminTeamsPage() {
     void load();
   }, []);
 
-  const maxTeams = tournament?.maxTeams ?? 32;
   const rows = useMemo(() => buildTeamSlotRows(maxTeams, teams), [maxTeams, teams]);
 
-  const openEdit = async (registrationId: number) => {
-    const id = registrationId;
-    if (!id) {
+  const saveSiteToggles = async () => {
+    setSiteSaving(true);
+    setError('');
+    try {
+      await updateSiteConfig({
+        registration_open: registrationOpen,
+        max_teams: maxTeams,
+        min_squad_size: testMinSquad ? 2 : 11,
+      });
+      setSuccessMsg('Site settings saved.');
+    } catch (err) {
+      setError(apiErrorMessage(err, 'Could not save site settings'));
+    } finally {
+      setSiteSaving(false);
+    }
+  };
+
+  const openEdit = async (registrationId: string) => {
+    if (!registrationId) {
       setError('Could not load this team. Refresh the page and try again.');
       return;
     }
     setError('');
     try {
-      const { data } = await api.get<{
-        id: number;
-        teamName: string;
-        city: string | null;
-        captainName: string;
-        teamLogoUrl: string | null;
-        players: {
-          id: number;
-          fullName: string;
-          captain: boolean;
-          jerseyNumber: number | null;
-          role: string | null;
-          photoUrl: string | null;
-        }[];
-      }>(`/api/v1/admin/registrations/${id}`);
+      const data = await getTeamForAdminEdit(registrationId);
       setEdit({
         id: data.id,
         teamName: data.teamName,
-        city: data.city ?? '',
+        city: data.city,
         captainName: data.captainName,
         teamLogoUrl: data.teamLogoUrl,
         newTeamLogo: null,
@@ -135,8 +126,8 @@ export function AdminTeamsPage() {
           id: p.id,
           fullName: p.fullName,
           captain: p.captain,
-          jerseyNumber: p.jerseyNumber != null ? String(p.jerseyNumber) : '',
-          playingRole: p.role ?? '',
+          jerseyNumber: p.jerseyNumber,
+          playingRole: p.playingRole,
           photoUrl: p.photoUrl,
           newPhoto: null,
         })),
@@ -152,21 +143,17 @@ export function AdminTeamsPage() {
     setAdding(true);
     setError('');
     try {
-      const payload = { teamName: newTeamName.trim(), captainName: newCaptain.trim() };
-      if (newTeamLogo || newCaptainPhoto) {
-        const form = new FormData();
-        form.append('payload', new Blob([JSON.stringify(payload)], { type: 'application/json' }));
-        if (newTeamLogo) form.append('teamLogo', newTeamLogo);
-        if (newCaptainPhoto) form.append('captainPhoto', newCaptainPhoto);
-        await api.post('/api/v1/admin/registrations/teams/with-media', form);
-      } else {
-        await api.post('/api/v1/admin/registrations/teams', payload);
-      }
+      await adminAddConfirmedTeam({
+        teamName: newTeamName.trim(),
+        captainName: newCaptain.trim(),
+        teamLogo: newTeamLogo,
+        captainPhoto: newCaptainPhoto,
+      });
       setNewTeamName('');
       setNewCaptain('');
       setNewTeamLogo(null);
       setNewCaptainPhoto(null);
-      load();
+      await load();
     } catch (err) {
       setError(apiErrorMessage(err, 'Could not add team'));
     } finally {
@@ -174,27 +161,12 @@ export function AdminTeamsPage() {
     }
   };
 
-  const requestDelete = async (registrationId: number | null, teamName: string) => {
-    setError('');
-    setSuccessMsg('');
-    setResolvingDelete(true);
-    let id = registrationId;
-    try {
-      if (!id) {
-        id = await fetchConfirmedIdByTeamName(teamName);
-      }
-      if (!id) {
-        setError(
-          'Could not resolve this team’s id. Hard refresh (Cmd+Shift+R), sign in again under Admin, and restart the backend if the problem continues.',
-        );
-        return;
-      }
-      setPendingDelete({ registrationId: id, teamName });
-    } catch (err) {
-      setError(apiErrorMessage(err, 'Could not prepare delete'));
-    } finally {
-      setResolvingDelete(false);
+  const requestDelete = (registrationId: string | null, teamName: string) => {
+    if (!registrationId) {
+      setError('Could not resolve this team’s id.');
+      return;
     }
+    setPendingDelete({ registrationId, teamName });
   };
 
   const confirmDelete = async () => {
@@ -203,14 +175,14 @@ export function AdminTeamsPage() {
     setError('');
     const { registrationId, teamName } = pendingDelete;
     try {
-      await api.delete<{ deleted: boolean }>(`/api/v1/admin/registrations/${registrationId}/board`);
+      await adminDeleteTeamFromBoard(registrationId);
       setPendingDelete(null);
       setSuccessMsg(`"${teamName}" was removed from the board.`);
       await load();
     } catch (err) {
-      const status = (err as { response?: { status?: number } })?.response?.status;
-      if (status === 401 || status === 403) {
-        clearAdminSession();
+      const msg = (err as { message?: string })?.message ?? '';
+      if (msg.toLowerCase().includes('jwt') || msg.includes('401')) {
+        await signOutAdmin();
         window.location.assign('/admin/teams');
         return;
       }
@@ -226,58 +198,89 @@ export function AdminTeamsPage() {
     setSaving(true);
     setError('');
     try {
-      const photoFiles: File[] = [];
-      const attachPhotoIndex = (file: File | null): number | null => {
-        if (!file) return null;
-        const idx = photoFiles.length;
-        photoFiles.push(file);
-        return idx;
-      };
-
-      const existingUpdates = edit.players
-        .filter((p) => p.id != null)
-        .map((p) => ({
-          id: p.id!,
-          fullName: p.fullName.trim(),
-          captain: p.captain,
-          jerseyNumber: p.jerseyNumber.trim() ? Number(p.jerseyNumber) : null,
-          playingRole: p.playingRole.trim() || null,
-          photoUploadIndex: attachPhotoIndex(p.newPhoto),
-        }));
-
-      const newPlayers = edit.players
-        .filter((p) => p.id == null)
-        .map((p) => ({
-          fullName: p.fullName.trim(),
-          captain: p.captain,
-          jerseyNumber: p.jerseyNumber.trim() ? Number(p.jerseyNumber) : null,
-          playingRole: p.playingRole.trim() || null,
-          photoUploadIndex: attachPhotoIndex(p.newPhoto),
-        }));
-
-      const payload = {
-        teamName: edit.teamName.trim(),
-        city: edit.city.trim() || null,
-        captainName: edit.captainName.trim(),
-        players: existingUpdates,
-        newPlayers,
-        removePlayerIds: edit.removedPlayerIds,
-      };
-
-      const form = new FormData();
-      form.append('payload', new Blob([JSON.stringify(payload)], { type: 'application/json' }));
-      if (edit.newTeamLogo) form.append('teamLogo', edit.newTeamLogo);
-      for (const f of photoFiles) {
-        form.append('playerPhotos', f);
-      }
-
-      await api.put(`/api/v1/admin/registrations/${edit.id}/with-media`, form);
+      const newPhotos = new Map<number, File>();
+      edit.players.forEach((p, i) => {
+        if (p.newPhoto) newPhotos.set(i, p.newPhoto);
+      });
+      await adminSaveTeamEdit(edit, {
+        newTeamLogo: edit.newTeamLogo,
+        newPhotos,
+        removedPlayerIds: edit.removedPlayerIds,
+      });
       setEdit(null);
-      load();
+      await load();
     } catch (err) {
       setError(apiErrorMessage(err, 'Could not save team'));
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleApprove = async (id: string) => {
+    setError('');
+    try {
+      await approveTeam(id);
+      setSuccessMsg('Team approved and visible on the public board.');
+      await load();
+    } catch (err) {
+      setError(apiErrorMessage(err, 'Could not approve team'));
+    }
+  };
+
+  const handleReject = async (id: string) => {
+    setError('');
+    try {
+      await rejectTeam(id);
+      await load();
+    } catch (err) {
+      setError(apiErrorMessage(err, 'Could not reject team'));
+    }
+  };
+
+  const downloadOne = async (teamId: string) => {
+    setDownloadingId(teamId);
+    setError('');
+    try {
+      const pack = await adminFetchTeamWithPhotosForDownload(teamId);
+      await downloadTeamPhotosZip(pack.teamName, pack.logoUrl, pack.players);
+    } catch (err) {
+      setError(apiErrorMessage(err, 'Could not download photos'));
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
+  const downloadAll = async () => {
+    setBulkDownloading(true);
+    setError('');
+    try {
+      const packs = await Promise.all(teams.map((t) => adminFetchTeamWithPhotosForDownload(t.registrationId)));
+      await downloadAllTeamsPhotosZip(
+        packs.map((p) => ({
+          teamName: p.teamName,
+          logoUrl: p.logoUrl,
+          players: p.players,
+        })),
+      );
+    } catch (err) {
+      setError(apiErrorMessage(err, 'Could not download all photos'));
+    } finally {
+      setBulkDownloading(false);
+    }
+  };
+
+  const exportCsv = async () => {
+    try {
+      const csv = await exportRegistrationsCsv();
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'registrations.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(apiErrorMessage(err, 'Export failed'));
     }
   };
 
@@ -325,11 +328,80 @@ export function AdminTeamsPage() {
   return (
     <AdminShell title="Team board">
       <p className="mb-6 text-sm text-paper/60">
-        Add teams, edit squads and photos, or delete teams from the public board.
+        Approve registrations, manage the public board, edit squads, and download team photos.
       </p>
 
+      <div className="register-panel mb-8 space-y-4 px-5 py-5">
+        <p className="hud-label text-floodlight-dim">Site</p>
+        <label className="flex items-center gap-2 text-sm text-paper/75">
+          <input
+            type="checkbox"
+            checked={registrationOpen}
+            onChange={(e) => setRegistrationOpen(e.target.checked)}
+          />
+          Registration open
+        </label>
+        <label className="flex items-center gap-2 text-sm text-paper/75">
+          <input type="checkbox" checked={testMinSquad} onChange={(e) => setTestMinSquad(e.target.checked)} />
+          2-player squads (testing) — captain + 1 player
+        </label>
+        <label className="block max-w-xs">
+          <span className="form-label">Max teams</span>
+          <input
+            type="number"
+            className="form-field"
+            min={2}
+            max={64}
+            value={maxTeams}
+            onChange={(e) => setMaxTeams(Number(e.target.value))}
+          />
+        </label>
+        <div className="flex flex-wrap gap-3">
+          <button type="button" className="btn-outline text-sm" disabled={siteSaving} onClick={() => void saveSiteToggles()}>
+            {siteSaving ? 'Saving…' : 'Save site settings'}
+          </button>
+          <button type="button" className="btn-outline text-sm" onClick={() => void exportCsv()}>
+            Download CSV
+          </button>
+          <button
+            type="button"
+            className="btn-outline text-sm"
+            disabled={bulkDownloading || teams.length === 0}
+            onClick={() => void downloadAll()}
+          >
+            {bulkDownloading ? 'Zipping…' : 'Download all team photos'}
+          </button>
+        </div>
+      </div>
+
+      {pending.length > 0 ? (
+        <section className="register-panel mb-8 px-5 py-5">
+          <p className="hud-label text-floodlight-dim">Pending approvals</p>
+          <ul className="mt-4 divide-y divide-paper/12">
+            {pending.map((p) => (
+              <li key={p.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
+                <div>
+                  <p className="font-display text-lg text-floodlight-bright">{p.teamName}</p>
+                  <p className="text-xs text-paper/50">
+                    Ref {p.publicReference} · Captain {p.captainName}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button type="button" className="btn-primary text-sm" onClick={() => void handleApprove(p.id)}>
+                    Approve
+                  </button>
+                  <button type="button" className="btn-outline text-sm" onClick={() => void handleReject(p.id)}>
+                    Reject
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
       <form onSubmit={addTeam} className="register-panel space-y-5 px-5 py-5">
-        <p className="hud-label text-floodlight-dim">Add team</p>
+        <p className="hud-label text-floodlight-dim">Add team (confirmed)</p>
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="block">
             <span className="form-label">Team name</span>
@@ -367,7 +439,7 @@ export function AdminTeamsPage() {
               <>
                 <span className="font-display text-lg text-floodlight-bright">{row.teamName}</span>
                 <span className="text-sm tabular-nums text-paper/50">
-                  {formatRegisteredAt(row.registeredAt, tournament?.timezone ?? 'Asia/Kolkata')}
+                  {formatRegisteredAt(row.registeredAt, 'Asia/Kolkata')}
                 </span>
                 {row.kind === 'host' ? (
                   <span className="text-xs text-paper/45">{HOME_EVENT.hostTeamName} (host)</span>
@@ -376,15 +448,23 @@ export function AdminTeamsPage() {
                     <button
                       type="button"
                       className="text-sm text-electric underline"
-                      onClick={() => openEdit(row.registrationId!)}
+                      onClick={() => void openEdit(row.registrationId!)}
                     >
                       Edit
                     </button>
                     <button
                       type="button"
+                      className="text-sm text-paper/70 underline disabled:opacity-40"
+                      disabled={downloadingId === row.registrationId}
+                      onClick={() => void downloadOne(row.registrationId!)}
+                    >
+                      {downloadingId === row.registrationId ? '…' : 'Photos'}
+                    </button>
+                    <button
+                      type="button"
                       className="text-sm text-red-300 underline disabled:opacity-40"
-                      disabled={resolvingDelete || deleting}
-                      onClick={() => void requestDelete(row.registrationId, row.teamName!)}
+                      disabled={deleting}
+                      onClick={() => requestDelete(row.registrationId, row.teamName!)}
                     >
                       Delete
                     </button>
@@ -402,7 +482,6 @@ export function AdminTeamsPage() {
             <h2 className="font-display text-xl text-floodlight-bright">Delete team?</h2>
             <p className="mt-3 text-sm text-paper/75">
               Remove <strong className="text-paper">{pendingDelete.teamName}</strong> from the public team board.
-              Registration data stays in admin history but the team will no longer appear on the site.
             </p>
             <div className="mt-6 flex gap-3">
               <button
@@ -413,7 +492,7 @@ export function AdminTeamsPage() {
               >
                 Cancel
               </button>
-              <button type="button" className="btn-primary flex-1 text-sm" disabled={deleting} onClick={confirmDelete}>
+              <button type="button" className="btn-primary flex-1 text-sm" disabled={deleting} onClick={() => void confirmDelete()}>
                 {deleting ? 'Deleting…' : 'Delete team'}
               </button>
             </div>
@@ -523,10 +602,18 @@ export function AdminTeamsPage() {
               </ul>
             </div>
             <div className="flex gap-3 border-t border-paper/10 px-5 py-4">
+              <button
+                type="button"
+                className="btn-outline text-sm"
+                disabled={saving}
+                onClick={() => void downloadOne(edit.id)}
+              >
+                Download photos
+              </button>
               <button type="button" className="btn-outline flex-1 text-sm" onClick={() => setEdit(null)} disabled={saving}>
                 Cancel
               </button>
-              <button type="button" className="btn-primary flex-1 text-sm" disabled={saving} onClick={saveEdit}>
+              <button type="button" className="btn-primary flex-1 text-sm" disabled={saving} onClick={() => void saveEdit()}>
                 {saving ? 'Saving…' : 'Save changes'}
               </button>
             </div>

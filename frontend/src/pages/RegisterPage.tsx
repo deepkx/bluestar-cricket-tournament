@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import api, { apiErrorMessage } from '../api/client';
+import { apiErrorMessage } from '../utils/errors';
 import { PublicPageContent } from '../components/layout/PublicPageContent';
 import { PublicPageHero } from '../components/layout/PublicPageHero';
 import { PlayerPhotoField } from '../components/register/PlayerPhotoField';
+import { submitRegistration } from '../data/registrations';
+import { getCurrentTournament } from '../data/tournament';
 import type { TournamentPublic } from '../types/api';
 
 type SquadMember = {
@@ -39,10 +41,12 @@ export function RegisterPage() {
   const maxSquad = tournament?.maxSquadSize ?? 15;
 
   useEffect(() => {
-    api.get<TournamentPublic>('/api/v1/tournaments/current').then((r) => {
-      setTournament(r.data);
-      setSquadSize((prev) => Math.max(r.data.minSquadSize, Math.min(prev, r.data.maxSquadSize)));
-    });
+    getCurrentTournament()
+      .then((t) => {
+        setTournament(t);
+        setSquadSize((prev) => Math.max(t.minSquadSize, Math.min(prev, t.maxSquadSize)));
+      })
+      .catch(() => setError('Could not load registration settings.'));
   }, []);
 
   useEffect(() => {
@@ -98,31 +102,22 @@ export function RegisterPage() {
     setSubmitting(true);
     try {
       const players = [
-        { fullName: captainName.trim(), jerseyNumber: null, playingRole: null, isCaptain: true },
+        { fullName: captainName.trim(), isCaptain: true },
         ...otherPlayers.map((p) => ({
           fullName: p.fullName.trim(),
-          jerseyNumber: null,
-          playingRole: null,
           isCaptain: false,
         })),
       ];
-      const payload = {
-        teamName: teamName.trim(),
-        city: null,
-        captain: { fullName: captainName.trim() },
-        players,
-        rulesAccepted: true,
-      };
-      const form = new FormData();
-      form.append('payload', new Blob([JSON.stringify(payload)], { type: 'application/json' }));
-      form.append('teamLogo', teamLogo);
-      form.append('playerPhotos', captainPhoto);
-      for (const p of otherPlayers) {
-        form.append('playerPhotos', p.photo!);
-      }
+      const playerPhotos = [captainPhoto, ...otherPlayers.map((p) => p.photo!)];
 
-      const { data } = await api.post<{ publicReference: string }>('/api/v1/registrations/with-media', form);
-      navigate(`/registration/success?ref=${data.publicReference}`);
+      const { publicReference } = await submitRegistration({
+        teamName: teamName.trim(),
+        captainName: captainName.trim(),
+        players,
+        teamLogo,
+        playerPhotos,
+      });
+      navigate(`/registration/success?ref=${publicReference}`);
     } catch (err: unknown) {
       showError(apiErrorMessage(err, 'Registration failed. Check your connection and try again.'));
       setSubmitting(false);
@@ -169,15 +164,13 @@ export function RegisterPage() {
       <PublicPageContent width="lg" sideScenery>
         <form className="register-panel px-5 py-6 sm:px-8 sm:py-8" onSubmit={handleSubmit}>
           <div className="border border-floodlight/35 bg-floodlight/10 px-4 py-3 text-sm text-paper/90">
-            Once submitted, team details and photos{' '}
-            <strong className="text-floodlight-bright">cannot be edited or changed</strong>. Fill everything below,
-            then submit to confirm your slot on the team board.
+            After you submit, an admin will review your team before it appears on the public board. Details and photos
+            are <strong className="text-floodlight-bright">final at submit</strong> unless the committee contacts you.
           </div>
 
           {tournament.registrationTestMode ? (
             <p className="mt-4 border border-amber-500/40 bg-amber-950/30 px-4 py-3 text-sm text-amber-100">
-              Dev mode: minimum squad is {minSquad} players (set <code className="text-amber-200">REGISTRATION_TEST_MIN_SQUAD=true</code>{' '}
-              on the backend). Disable before production.
+              Test mode: minimum squad is {minSquad} players.
             </p>
           ) : null}
 

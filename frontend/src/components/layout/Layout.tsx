@@ -2,6 +2,7 @@ import { motion, useScroll, useTransform } from 'framer-motion';
 import { Menu, X } from 'lucide-react';
 import { useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { getAdminSession } from '../../data/auth';
 import { AdminGateModal } from '../admin/AdminGateModal';
 
 const links = [
@@ -25,11 +26,10 @@ export function Layout({ introActive = false }: LayoutProps) {
 
   const openAdmin = () => {
     setOpen(false);
-    if (localStorage.getItem('admin_token')) {
-      navigate('/admin');
-    } else {
-      setAdminOpen(true);
-    }
+    void getAdminSession().then((session) => {
+      if (session) navigate('/admin/teams');
+      else setAdminOpen(true);
+    });
   };
 
   return (

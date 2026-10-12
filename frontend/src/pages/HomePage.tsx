@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import api from '../api/client';
+import { getCurrentTournament } from '../data/tournament';
 import { HomeAtAGlanceGrid } from '../components/home/HomeAtAGlanceGrid';
 import { HomeTournamentStartTimer } from '../components/home/HomeTournamentStartTimer';
 import { HomeHero } from '../components/home/HomeHero';
@@ -16,8 +16,8 @@ export function HomePage({ introActive }: Props) {
   const [announcements, setAnnouncements] = useState<AnnouncementPublic[]>([]);
 
   useEffect(() => {
-    api.get<TournamentPublic>('/api/v1/tournaments/current').then((r) => setTournament(r.data));
-    api.get<AnnouncementPublic[]>('/api/v1/announcements').then((r) => setAnnouncements(r.data.slice(0, 4)));
+    getCurrentTournament().then(setTournament);
+    setAnnouncements([]);
   }, []);
 
   if (!tournament) {

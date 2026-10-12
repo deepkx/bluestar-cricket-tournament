@@ -4,7 +4,7 @@ import type { TeamPublic } from '../types/api';
 export type TeamSlotRow = {
   slot: number;
   teamName: string | null;
-  registrationId: number | null;
+  registrationId: string | null;
   kind: 'host' | 'filled' | 'open';
   registeredAt: string | null;
 };

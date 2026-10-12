@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import api from '../api/client';
+import { listConfirmedTeams } from '../data/teams';
+import { getCurrentTournament } from '../data/tournament';
 import { PublicPageContent } from '../components/layout/PublicPageContent';
 import { PublicPageHero } from '../components/layout/PublicPageHero';
 import type { TeamPublic, TournamentPublic } from '../types/api';
@@ -16,13 +17,10 @@ export function TeamsPage() {
   const loadTeams = useCallback(() => {
     setLoading(true);
     setErr('');
-    Promise.all([
-      api.get<TournamentPublic>('/api/v1/tournaments/current'),
-      api.get<TeamPublic[]>('/api/v1/teams'),
-    ])
-      .then(([tRes, teamsRes]) => {
-        setTournament(tRes.data);
-        setTeams(teamsRes.data);
+    Promise.all([getCurrentTournament(), listConfirmedTeams()])
+      .then(([t, teamList]) => {
+        setTournament(t);
+        setTeams(teamList);
       })
       .catch(() => setErr('Failed to load teams'))
       .finally(() => setLoading(false));

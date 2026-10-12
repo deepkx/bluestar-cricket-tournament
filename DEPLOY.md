@@ -1,87 +1,63 @@
-# Public deployment (everyone on the internet)
+# Public deployment
 
-Three options, from fastest to most permanent.
+## Recommended — Vercel (site) + Supabase (database & photos)
 
-## Option 1 — Instant public link (Cloudflare Tunnel)
+| Part | Host |
+|------|------|
+| React app | [Vercel](https://vercel.com) — root directory **`frontend`** |
+| Teams, registrations, photos | [Supabase](https://supabase.com) free tier (Postgres + Storage + Auth) |
 
-Good for demos while you set up Vercel + Render. Requires Docker stack running locally.
+### 1. Supabase
 
-```bash
-./scripts/host-docker.sh          # if not already up
-./scripts/public-tunnel.sh        # prints https://….trycloudflare.com
-```
+Follow [`supabase/README.md`](supabase/README.md): run the SQL migration, create the `team-media` bucket if needed, add one **admin** Auth user.
 
-Share that HTTPS URL. Set `PUBLIC_ORIGIN` in `.env.docker` to that URL and restart Docker if admin/API calls fail CORS.
+### 2. Vercel
+
+Import [deepkx/bluestar-cricket-tournament](https://github.com/deepkx/bluestar-cricket-tournament) with **Root Directory** = `frontend`.
+
+**Production environment variables:**
+
+| Variable | Value |
+|----------|--------|
+| `VITE_SUPABASE_URL` | Project URL (Supabase → Settings → API) |
+| `VITE_SUPABASE_ANON_KEY` | `anon` public key |
+| `VITE_ADMIN_EMAIL` | Same email as the Supabase Auth admin user |
+
+Do **not** set `VITE_API_BASE_URL` unless you are running the legacy Java API locally.
+
+Deploy. Open the site → **Register** submits to Supabase as **pending** → **Admin** (password) → approve on **Team board** → team appears on `/teams`.
+
+Admin can **edit/delete** confirmed teams, **download photos** (per team or all), toggle **registration open**, enable **2-player squads (testing)**, and export **CSV**.
+
+Fixtures: edit [`frontend/src/content/fixtures.json`](frontend/src/content/fixtures.json) when the draw is ready (empty array until then).
 
 ---
 
-## Option 2 — Vercel (site) + Render (API + MySQL) — recommended
+## Optional — instant demo link (Cloudflare Tunnel + Docker)
 
-| Part | Host | URL |
-|------|------|-----|
-| React site | [Vercel](https://vercel.com) | `https://your-app.vercel.app` |
-| Spring Boot + uploads | [Render](https://render.com) | `https://bluestar-api.onrender.com` |
-| MySQL | Render private service | internal only |
+For local demos with the **legacy** Spring + MySQL stack:
 
-### Step 0 — GitHub CLI (one time)
+```bash
+./scripts/host-docker.sh
+./scripts/public-tunnel.sh
+```
 
-In a terminal:
+See README “Host fully (Docker)”. Not required for Vercel + Supabase production.
+
+---
+
+## Legacy — Render (Java API + MySQL)
+
+The `backend/` folder and `render.yaml` remain for teams who want Spring Boot + MySQL. That path requires a paid Render plan for MySQL and is **not** used by the Supabase frontend.
+
+If you use it: set `VITE_API_BASE_URL` on Vercel to your Render API URL and `CORS_ALLOWED_ORIGINS` on Render to your Vercel URL.
+
+---
+
+## GitHub CLI (one time)
 
 ```bash
 gh auth login
-# Choose: GitHub.com → SSH → Login with a web browser
-# Open https://github.com/login/device and paste the one-time code
 ```
 
-Or run (auto-pushes when login completes):
-
-```bash
-./scripts/wait-gh-and-push.sh
-```
-
-### Step A — Push code to GitHub
-
-Render and Vercel deploy from Git. The push script creates **`deepkx/bluestar-cricket-tournament`** (public) if it does not exist yet.
-
-### Step B — Render (backend)
-
-**One-click:** [Deploy to Render](https://render.com/deploy?repo=https://github.com/deepkx/bluestar-cricket-tournament) (sign in with GitHub, approve repo access).
-
-Or: [Dashboard → Blueprints](https://dashboard.render.com/blueprints) → **New Blueprint Instance** → connect **`deepkx/bluestar-cricket-tournament`** (`render.yaml`).
-3. When prompted, set sync env vars:
-   - **`ADMIN_QUICK_PASSWORD`** — e.g. `0908` (site Admin menu).
-   - **`CORS_ALLOWED_ORIGINS`** — your Vercel URL, e.g. `https://bluestar-cricket.vercel.app` (no trailing slash).
-4. Wait for **bluestar-api** to go live. Open `https://<bluestar-api>/api/v1/tournaments/current` — should return JSON.
-
-Note: Render free/starter web services **sleep** when idle; first request may take ~30s.
-
-### Step C — Vercel (frontend)
-
-1. [Import project](https://vercel.com/new) from the same GitHub repo.
-2. **Root Directory:** `frontend`
-3. **Environment variable (Production):**
-   - `VITE_API_BASE_URL` = `https://<your-render-api-host>` (no trailing slash)
-4. Deploy. Open the Vercel URL — teams, register, and admin should hit Render.
-
-5. Update Render **`CORS_ALLOWED_ORIGINS`** to match the final Vercel URL (and custom domain if you add one). Redeploy API if needed.
-
-### Custom domain (optional)
-
-- Vercel: add domain in project settings.
-- Render: add custom domain on **bluestar-api** (HTTPS).
-- Set `VITE_API_BASE_URL` to `https://api.yourdomain.com` and `CORS_ALLOWED_ORIGINS` to `https://yourdomain.com`.
-
----
-
-## Option 3 — Single VPS (Docker Compose)
-
-Use **`./scripts/host-docker.sh`** on a cloud VM (DigitalOcean, Hetzner, etc.), open port 80/443, set `PUBLIC_ORIGIN` to your HTTPS site URL. See README “Host fully (Docker)”.
-
----
-
-## Checklist after go-live
-
-- [ ] Admin → quick password works
-- [ ] Public **Teams** page loads from API
-- [ ] Register with logo/photo; image URLs load (`VITE_API_BASE_URL` + `/uploads`)
-- [ ] `REGISTRATION_TEST_MIN_SQUAD` is **false** on Render
+Or `./scripts/gh.sh auth login` if `~/.config` is root-owned (see [`scripts/gh.sh`](scripts/gh.sh)).

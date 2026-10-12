@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import api from '../api/client';
+import { getTeamByName } from '../data/teams';
 import { PublicPageContent } from '../components/layout/PublicPageContent';
 import { PublicPageHero } from '../components/layout/PublicPageHero';
 import { HOME_EVENT, isHostTeamName } from '../content/homeEvent';
@@ -36,9 +36,11 @@ export function TeamDetailPage() {
     }
     setLoading(true);
     setError('');
-    api
-      .get<TeamDetail>('/api/v1/teams/by-name', { params: { name: teamName } })
-      .then((r) => setDetail(r.data))
+    getTeamByName(teamName)
+      .then((data) => {
+        if (!data) setError('Team not found or not yet confirmed.');
+        else setDetail(data);
+      })
       .catch(() => setError('Team not found or not yet confirmed.'))
       .finally(() => setLoading(false));
   }, [teamName]);

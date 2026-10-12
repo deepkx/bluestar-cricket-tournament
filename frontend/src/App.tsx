@@ -11,10 +11,6 @@ import { RegisterPage } from './pages/RegisterPage';
 import { RegistrationSuccessPage } from './pages/RegistrationSuccessPage';
 import { TeamDetailPage } from './pages/TeamDetailPage';
 import { TeamsPage } from './pages/TeamsPage';
-import { AdminDashboardPage } from './pages/admin/AdminDashboardPage';
-import { AdminLoginPage } from './pages/admin/AdminLoginPage';
-import { AdminRegistrationsPage } from './pages/admin/AdminRegistrationsPage';
-import { AdminSettingsPage } from './pages/admin/AdminSettingsPage';
 import { AdminTeamsPage } from './pages/admin/AdminTeamsPage';
 
 function AppRoutes() {
@@ -48,10 +44,10 @@ function AppRoutes() {
           <Route path="sponsors" element={<Navigate to="/" replace />} />
           <Route path="contact" element={<Navigate to="/" replace />} />
         </Route>
-        <Route path="admin/login" element={<AdminLoginPage />} />
-        <Route path="admin" element={<AdminDashboardPage />} />
-        <Route path="admin/settings" element={<AdminSettingsPage />} />
-        <Route path="admin/registrations" element={<AdminRegistrationsPage />} />
+        <Route path="admin" element={<Navigate to="/admin/teams" replace />} />
+        <Route path="admin/login" element={<Navigate to="/admin/teams" replace />} />
+        <Route path="admin/settings" element={<Navigate to="/admin/teams" replace />} />
+        <Route path="admin/registrations" element={<Navigate to="/admin/teams" replace />} />
         <Route path="admin/teams" element={<AdminTeamsPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

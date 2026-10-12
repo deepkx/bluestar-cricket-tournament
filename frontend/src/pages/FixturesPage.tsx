@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import api from '../api/client';
+import { listPublishedMatches } from '../data/matches';
+import { getCurrentTournament } from '../data/tournament';
 import { PublicPageContent } from '../components/layout/PublicPageContent';
 import { PublicPageHero } from '../components/layout/PublicPageHero';
 import { RevealCountdownBlock } from '../components/ui/RevealCountdownBlock';
@@ -12,12 +13,9 @@ export function FixturesPage() {
   const [matches, setMatches] = useState<MatchPublic[]>([]);
 
   useEffect(() => {
-    Promise.all([
-      api.get<TournamentPublic>('/api/v1/tournaments/current'),
-      api.get<MatchPublic[]>('/api/v1/matches'),
-    ]).then(([tRes, mRes]) => {
-      setTournament(tRes.data);
-      setMatches(mRes.data);
+    Promise.all([getCurrentTournament(), listPublishedMatches()]).then(([t, m]) => {
+      setTournament(t);
+      setMatches(m);
     });
   }, []);
 
