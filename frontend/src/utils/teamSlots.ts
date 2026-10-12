@@ -9,9 +9,10 @@ export type TeamSlotRow = {
   registeredAt: string | null;
 };
 
-const HOST_SLOTS = HOME_EVENT.hostTeamNames.length;
+export const HOST_SLOT_COUNT = HOME_EVENT.hostTeamNames.length;
 
 export function buildTeamSlotRows(maxTeams: number, confirmed: TeamPublic[]): TeamSlotRow[] {
+  const cap = Math.max(maxTeams, HOST_SLOT_COUNT);
   const external = confirmed
     .filter((t) => !isFixedHostTeamName(t.teamName))
     .sort((a, b) => {
@@ -22,21 +23,21 @@ export function buildTeamSlotRows(maxTeams: number, confirmed: TeamPublic[]): Te
     });
 
   const rows: TeamSlotRow[] = [];
-  for (let h = 0; h < HOST_SLOTS; h++) {
+  for (let h = 0; h < HOST_SLOT_COUNT; h++) {
     rows.push({
       slot: h + 1,
-      teamName: HOME_EVENT.hostTeamNames[h],
+      teamName: HOME_EVENT.hostTeamNames[h] ?? HOME_EVENT.hostTeamName,
       registrationId: null,
       kind: 'host',
       registeredAt: null,
     });
   }
 
-  const externalSlots = Math.max(0, maxTeams - HOST_SLOTS);
+  const externalSlots = Math.max(0, cap - HOST_SLOT_COUNT);
   for (let i = 0; i < externalSlots; i++) {
     const team = external[i];
     rows.push({
-      slot: i + 1 + HOST_SLOTS,
+      slot: i + 1 + HOST_SLOT_COUNT,
       teamName: team?.teamName ?? null,
       registrationId: team?.registrationId ?? null,
       kind: team ? 'filled' : 'open',
@@ -48,11 +49,12 @@ export function buildTeamSlotRows(maxTeams: number, confirmed: TeamPublic[]): Te
 }
 
 export function teamSlotStats(maxTeams: number, confirmed: TeamPublic[]) {
+  const cap = Math.max(maxTeams, HOST_SLOT_COUNT);
   const externalCount = confirmed.filter((t) => !isFixedHostTeamName(t.teamName)).length;
-  const filled = HOST_SLOTS + externalCount;
+  const filled = HOST_SLOT_COUNT + externalCount;
   return {
     filled,
-    available: Math.max(0, maxTeams - filled),
-    maxTeams,
+    available: Math.max(0, cap - filled),
+    maxTeams: cap,
   };
 }

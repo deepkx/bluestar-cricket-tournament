@@ -44,7 +44,7 @@ export function mapSiteConfigToTournament(cfg: SiteConfigRow): TournamentPublic 
     description: HOME_EVENT.formatLine,
     format: 'KNOCKOUT',
     entryFeePaise: HOME_EVENT.entryFeeRupee * 100,
-    maxTeams: cfg.max_teams,
+    maxTeams: Math.max(cfg.max_teams, HOME_EVENT.hostTeamNames.length),
     minSquadSize,
     maxSquadSize: cfg.max_squad_size,
     registrationTestMode,
