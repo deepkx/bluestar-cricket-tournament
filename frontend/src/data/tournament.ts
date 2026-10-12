@@ -67,7 +67,16 @@ export async function getCurrentTournament(): Promise<TournamentPublic> {
 }
 
 export async function updateSiteConfig(
-  patch: Partial<Pick<SiteConfigRow, 'registration_open' | 'max_teams' | 'min_squad_size'>>,
+  patch: Partial<
+    Pick<
+      SiteConfigRow,
+      | 'registration_open'
+      | 'max_teams'
+      | 'min_squad_size'
+      | 'tournament_starts_at'
+      | 'fixture_announcement_at'
+    >
+  >,
 ) {
   const sb = requireSupabase();
   const { error } = await sb.from('site_config').update(patch).eq('id', 1);

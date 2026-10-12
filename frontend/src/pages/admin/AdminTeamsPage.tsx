@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { AdminShell } from '../../components/admin/AdminShell';
 import { PlayerPhotoField } from '../../components/register/PlayerPhotoField';
 import { HOME_EVENT } from '../../content/homeEvent';
+import { datetimeLocalToIso, isoToDatetimeLocal } from '../../utils/datetimeLocal';
 import {
   adminAddConfirmedTeam,
   adminDeleteTeamFromBoard,
@@ -49,6 +50,8 @@ export function AdminTeamsPage() {
   const [maxTeams, setMaxTeams] = useState(32);
   const [registrationOpen, setRegistrationOpen] = useState(true);
   const [testMinSquad, setTestMinSquad] = useState(false);
+  const [tournamentStartLocal, setTournamentStartLocal] = useState('');
+  const [fixtureRevealLocal, setFixtureRevealLocal] = useState('');
   const [siteSaving, setSiteSaving] = useState(false);
   const [teams, setTeams] = useState<TeamPublic[]>([]);
   const [pending, setPending] = useState<AdminTeamSummary[]>([]);
@@ -76,6 +79,8 @@ export function AdminTeamsPage() {
       setMaxTeams(cfg.max_teams);
       setRegistrationOpen(cfg.registration_open);
       setTestMinSquad(cfg.min_squad_size <= 2);
+      setTournamentStartLocal(isoToDatetimeLocal(cfg.tournament_starts_at));
+      setFixtureRevealLocal(isoToDatetimeLocal(cfg.fixture_announcement_at));
       setTeams(teamList);
       setPending(pendingList);
     } catch (err) {
@@ -97,6 +102,8 @@ export function AdminTeamsPage() {
         registration_open: registrationOpen,
         max_teams: maxTeams,
         min_squad_size: testMinSquad ? 2 : 11,
+        tournament_starts_at: datetimeLocalToIso(tournamentStartLocal),
+        fixture_announcement_at: datetimeLocalToIso(fixtureRevealLocal),
       });
       setSuccessMsg('Site settings saved.');
     } catch (err) {
@@ -354,6 +361,28 @@ export function AdminTeamsPage() {
             max={64}
             value={maxTeams}
             onChange={(e) => setMaxTeams(Number(e.target.value))}
+          />
+        </label>
+        <p className="hud-label pt-2 text-floodlight-dim">Countdowns</p>
+        <p className="text-xs text-paper/50">
+          Times use your device timezone. Leave blank to use site defaults ({HOME_EVENT.dateRange}).
+        </p>
+        <label className="block max-w-md">
+          <span className="form-label">Home — tournament starts (first ball)</span>
+          <input
+            type="datetime-local"
+            className="form-field"
+            value={tournamentStartLocal}
+            onChange={(e) => setTournamentStartLocal(e.target.value)}
+          />
+        </label>
+        <label className="block max-w-md">
+          <span className="form-label">Pools &amp; fixtures — reveal countdown</span>
+          <input
+            type="datetime-local"
+            className="form-field"
+            value={fixtureRevealLocal}
+            onChange={(e) => setFixtureRevealLocal(e.target.value)}
           />
         </label>
         <div className="flex flex-wrap gap-3">
