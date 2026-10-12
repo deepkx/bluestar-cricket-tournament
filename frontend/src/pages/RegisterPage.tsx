@@ -30,7 +30,7 @@ export function RegisterPage() {
   const [submitting, setSubmitting] = useState(false);
   const [teamName, setTeamName] = useState('');
   const [teamLogo, setTeamLogo] = useState<File | null>(null);
-  const [squadSize, setSquadSize] = useState(11);
+  const [squadSize, setSquadSize] = useState(2);
   const [captainName, setCaptainName] = useState('');
   const [captainPhoto, setCaptainPhoto] = useState<File | null>(null);
   const [otherPlayers, setOtherPlayers] = useState<SquadMember[]>([]);

@@ -25,7 +25,7 @@ CREATE TABLE site_config (
 );
 
 INSERT INTO site_config (id, max_teams, min_squad_size, max_squad_size, registration_open)
-VALUES (1, 32, 11, 15, TRUE)
+VALUES (1, 32, 2, 15, TRUE)
 ON CONFLICT (id) DO NOTHING;
 
 -- ---------------------------------------------------------------------------

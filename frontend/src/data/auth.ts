@@ -29,8 +29,16 @@ export async function signOutAdmin() {
 }
 
 export function authErrorMessage(err: unknown, fallback: string): string {
-  const msg = (err as { message?: string })?.message;
-  if (msg?.includes('Invalid login credentials')) return 'Incorrect email or password.';
+  const msg = (err as { message?: string })?.message ?? '';
+  if (msg.includes('Invalid login credentials')) {
+    return 'Wrong email or password. In Supabase → Authentication → Users, add a user with this email and your password (e.g. 0908).';
+  }
+  if (msg.includes('Email not confirmed')) {
+    return 'Confirm the admin email in Supabase, or disable “Confirm email” under Authentication → Providers → Email.';
+  }
+  if (msg.includes('Invalid API key') || msg.includes('api key')) {
+    return 'Invalid Supabase key on Vercel. Use the anon public key (eyJ…) from Project Settings → API, not the service role key.';
+  }
   if (msg) return msg;
   return fallback;
 }
