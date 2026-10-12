@@ -1,4 +1,4 @@
-import { HOME_EVENT, isHostTeamName } from '../content/homeEvent';
+import { HOME_EVENT, isFixedHostTeamName } from '../content/homeEvent';
 import type { TeamPublic } from '../types/api';
 
 export type TeamSlotRow = {
@@ -9,9 +9,11 @@ export type TeamSlotRow = {
   registeredAt: string | null;
 };
 
+const HOST_SLOTS = HOME_EVENT.hostTeamNames.length;
+
 export function buildTeamSlotRows(maxTeams: number, confirmed: TeamPublic[]): TeamSlotRow[] {
   const external = confirmed
-    .filter((t) => !isHostTeamName(t.teamName))
+    .filter((t) => !isFixedHostTeamName(t.teamName))
     .sort((a, b) => {
       const ta = a.confirmedAt ? new Date(a.confirmedAt).getTime() : 0;
       const tb = b.confirmedAt ? new Date(b.confirmedAt).getTime() : 0;
@@ -20,18 +22,21 @@ export function buildTeamSlotRows(maxTeams: number, confirmed: TeamPublic[]): Te
     });
 
   const rows: TeamSlotRow[] = [];
-  rows.push({
-    slot: 1,
-    teamName: HOME_EVENT.hostTeamName,
-    registrationId: null,
-    kind: 'host',
-    registeredAt: null,
-  });
+  for (let h = 0; h < HOST_SLOTS; h++) {
+    rows.push({
+      slot: h + 1,
+      teamName: HOME_EVENT.hostTeamNames[h],
+      registrationId: null,
+      kind: 'host',
+      registeredAt: null,
+    });
+  }
 
-  for (let i = 0; i < maxTeams - 1; i++) {
+  const externalSlots = Math.max(0, maxTeams - HOST_SLOTS);
+  for (let i = 0; i < externalSlots; i++) {
     const team = external[i];
     rows.push({
-      slot: i + 2,
+      slot: i + 1 + HOST_SLOTS,
       teamName: team?.teamName ?? null,
       registrationId: team?.registrationId ?? null,
       kind: team ? 'filled' : 'open',
@@ -43,8 +48,8 @@ export function buildTeamSlotRows(maxTeams: number, confirmed: TeamPublic[]): Te
 }
 
 export function teamSlotStats(maxTeams: number, confirmed: TeamPublic[]) {
-  const externalCount = confirmed.filter((t) => !isHostTeamName(t.teamName)).length;
-  const filled = 1 + externalCount;
+  const externalCount = confirmed.filter((t) => !isFixedHostTeamName(t.teamName)).length;
+  const filled = HOST_SLOTS + externalCount;
   return {
     filled,
     available: Math.max(0, maxTeams - filled),

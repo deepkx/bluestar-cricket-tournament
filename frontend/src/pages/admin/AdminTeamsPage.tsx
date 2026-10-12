@@ -471,7 +471,7 @@ export function AdminTeamsPage() {
                   {formatRegisteredAt(row.registeredAt, 'Asia/Kolkata')}
                 </span>
                 {row.kind === 'host' ? (
-                  <span className="text-xs text-paper/45">{HOME_EVENT.hostTeamName} (host)</span>
+                  <span className="text-xs text-paper/45">{row.teamName} (host)</span>
                 ) : (
                   <div className="flex flex-wrap gap-3">
                     <button

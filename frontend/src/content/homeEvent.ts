@@ -23,6 +23,8 @@ export const HOME_EVENT = {
   poolsFixturesRevealIso: '2026-10-15T12:30:00.000Z',
   poolsFixturesRevealLabel: 'Thursday 15 October · 6:00 PM IST',
   hostTeamName: 'Bluestar',
+  /** Fixed host slots on the team board (not from registration). */
+  hostTeamNames: ['Bluestar', 'Bluestar B'] as const,
   registerMotivationQuote: 'Every over counts. Leave nothing in the dressing room.',
 } as const;
 
@@ -34,8 +36,17 @@ export function resolvePoolsFixturesRevealIso(apiValue: string | null | undefine
   return apiValue ?? HOME_EVENT.poolsFixturesRevealIso;
 }
 
-/** True only for the fixed host slot name (e.g. "Bluestar"), not variants like "Bluestar B". */
+function normalizeTeamName(s: string): string {
+  return s.trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+/** True for fixed host board slots (e.g. Bluestar, Bluestar B). */
+export function isFixedHostTeamName(name: string): boolean {
+  const n = normalizeTeamName(name);
+  return HOME_EVENT.hostTeamNames.some((host) => normalizeTeamName(host) === n);
+}
+
+/** @deprecated use isFixedHostTeamName — true only for primary host "Bluestar". */
 export function isHostTeamName(name: string): boolean {
-  const normalize = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ');
-  return normalize(name) === normalize(HOME_EVENT.hostTeamName);
+  return normalizeTeamName(name) === normalizeTeamName(HOME_EVENT.hostTeamName);
 }

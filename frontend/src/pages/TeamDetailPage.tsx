@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { getTeamByName } from '../data/teams';
 import { PublicPageContent } from '../components/layout/PublicPageContent';
 import { PublicPageHero } from '../components/layout/PublicPageHero';
-import { HOME_EVENT, isHostTeamName } from '../content/homeEvent';
+import { isFixedHostTeamName } from '../content/homeEvent';
 import { mediaUrl } from '../utils/mediaUrl';
 
 type TeamDetail = {
@@ -23,9 +23,9 @@ export function TeamDetailPage() {
 
   useEffect(() => {
     if (!teamName) return;
-    if (isHostTeamName(teamName)) {
+    if (isFixedHostTeamName(teamName)) {
       setDetail({
-        teamName: HOME_EVENT.hostTeamName,
+        teamName,
         logoUrl: '/bluestar-star.svg',
         captainName: '—',
         confirmedAt: null,
@@ -71,7 +71,7 @@ export function TeamDetailPage() {
               </div>
               <div className="text-center sm:text-left">
                 <h2 className="font-display text-2xl tracking-wide text-floodlight-bright">{detail.teamName}</h2>
-                {!isHostTeamName(detail.teamName) ? (
+                {!isFixedHostTeamName(detail.teamName) ? (
                   <p className="mt-2 text-sm text-paper/65">
                     Captain: <span className="text-paper">{detail.captainName}</span>
                   </p>
