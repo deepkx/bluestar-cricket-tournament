@@ -13,7 +13,13 @@ Follow [`supabase/README.md`](supabase/README.md): run the SQL migration, create
 
 ### 2. Vercel
 
-Import [deepkx/bluestar-cricket-tournament](https://github.com/deepkx/bluestar-cricket-tournament) with **Root Directory** = `frontend`.
+**Import:** https://vercel.com/new/import?s=https://github.com/deepkx/bluestar-cricket-tournament
+
+Or run `./scripts/deploy-vercel-supabase.sh` (opens the import page).
+
+1. Sign in with GitHub → select **bluestar-cricket-tournament**.
+2. **Root Directory:** click Edit → set to **`frontend`** (required).
+3. **Framework:** Vite (auto-detected).
 
 **Production environment variables:**
 
