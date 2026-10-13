@@ -1,5 +1,6 @@
--- Seed 4 pools (10 teams each), sample fixtures, and set reveal time to the past for shuffle testing.
--- Requires 006 (teams) and 007 (pool tables). Safe to re-run.
+-- Official pool assignments by team name (edit lists below — no auto split by sort_order).
+-- Requires 006 (teams) and 007 (pool tables). Fixtures: set manually in Admin → Pools & fixtures.
+-- Optional: uncomment the site_config UPDATE to force reveal for shuffle testing.
 
 INSERT INTO teams (team_name, captain_name, sort_order, status, confirmed_at)
 VALUES
@@ -10,65 +11,58 @@ ON CONFLICT (normalized_name) DO UPDATE SET
   status = 'confirmed',
   confirmed_at = COALESCE(teams.confirmed_at, now());
 
-UPDATE site_config
-SET fixture_announcement_at = (now() - interval '10 minutes')
-WHERE id = 1;
+-- Uncomment for local shuffle test (draw already “live”):
+-- UPDATE site_config SET fixture_announcement_at = (now() - interval '10 minutes') WHERE id = 1;
 
-DELETE FROM tournament_fixtures;
 DELETE FROM tournament_pool_slots;
 
-WITH ordered AS (
-  SELECT
-    id,
-    ROW_NUMBER() OVER (
-      ORDER BY COALESCE(sort_order, 9999), normalized_name
-    ) AS rn
-  FROM teams
-  WHERE status = 'confirmed'
-),
-bucketed AS (
-  SELECT
-    id,
-    CASE
-      WHEN rn <= 10 THEN 'A'
-      WHEN rn <= 20 THEN 'B'
-      WHEN rn <= 30 THEN 'C'
-      ELSE 'D'
-    END AS pool_code,
-    ((rn - 1) % 10) + 1 AS slot_order
-  FROM ordered
-  WHERE rn <= 40
-)
 INSERT INTO tournament_pool_slots (pool_code, slot_order, team_id)
-SELECT pool_code, slot_order, id
-FROM bucketed
+SELECT v.pool_code, v.slot_order, t.id
+FROM (VALUES
+  -- Pool A — replace with your real draw
+  ('A', 1, 'Bluestar'),
+  ('A', 2, 'Bluestar B'),
+  ('A', 3, 'Dream Chasers'),
+  ('A', 4, 'Blasters'),
+  ('A', 5, 'Smashers'),
+  ('A', 6, 'Sports Star'),
+  ('A', 7, 'YDK'),
+  ('A', 8, 'Gully Boys'),
+  ('A', 9, 'Team Titan'),
+  ('A', 10, 'Bashers'),
+  -- Pool B
+  ('B', 1, 'Spartanz'),
+  ('B', 2, '408 Kings'),
+  ('B', 3, 'Honey Badgers'),
+  ('B', 4, 'Sunday Boys'),
+  ('B', 5, '90s Kids'),
+  ('B', 6, 'LHS'),
+  ('B', 7, 'College Birds'),
+  ('B', 8, 'SSK'),
+  ('B', 9, 'VCC'),
+  ('B', 10, 'Sharkzz'),
+  -- Pool C
+  ('C', 1, '11 Star'),
+  ('C', 2, 'Captains XI CC'),
+  ('C', 3, 'FCC'),
+  ('C', 4, 'Pheonix'),
+  ('C', 5, 'Thunder CC'),
+  ('C', 6, 'Madmasters'),
+  ('C', 7, 'SR Independence'),
+  ('C', 8, 'Independence'),
+  ('C', 9, 'Bad Jokers'),
+  ('C', 10, 'Disaster'),
+  -- Pool D
+  ('D', 1, 'Fearless'),
+  ('D', 2, 'Hollywood'),
+  ('D', 3, 'Falcons'),
+  ('D', 4, 'Scorpions'),
+  ('D', 5, 'INS'),
+  ('D', 6, 'SN Sports'),
+  ('D', 7, 'Game Changer'),
+  ('D', 8, 'Black Booster'),
+  ('D', 9, 'Neyveli Titans'),
+  ('D', 10, 'Empty Boys')
+) AS v(pool_code, slot_order, team_name)
+JOIN teams t ON t.normalized_name = normalize_team_name(v.team_name)
 ON CONFLICT (pool_code, slot_order) DO UPDATE SET team_id = EXCLUDED.team_id;
-
--- Pairings 1v2, 3v4, … within each pool
-WITH paired AS (
-  SELECT
-    pool_code,
-    slot_order,
-    team_id,
-    LEAD(team_id) OVER (PARTITION BY pool_code ORDER BY slot_order) AS team_b_id
-  FROM tournament_pool_slots
-  WHERE team_id IS NOT NULL
-),
-numbered AS (
-  SELECT
-    pool_code,
-    team_id AS team_a_id,
-    team_b_id,
-    ROW_NUMBER() OVER (ORDER BY pool_code, slot_order) AS match_order
-  FROM paired
-  WHERE slot_order % 2 = 1 AND team_b_id IS NOT NULL
-)
-INSERT INTO tournament_fixtures (pool_code, match_order, team_a_id, team_b_id, label, venue)
-SELECT
-  pool_code,
-  match_order,
-  team_a_id,
-  team_b_id,
-  'Pool ' || pool_code,
-  'Hollywood Ground'
-FROM numbered;
