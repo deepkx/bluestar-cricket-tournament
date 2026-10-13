@@ -184,14 +184,19 @@ export async function fetchPublicPools(): Promise<PoolBoard[]> {
     slots: { slotOrder: number; teamId: string | null; teamName: string | null }[];
   }[];
   if (!Array.isArray(raw) || raw.length === 0) return [];
-  return raw.map((p) => ({
-    poolCode: p.poolCode,
-    slots: (p.slots ?? []).map((s) => ({
-      slotOrder: s.slotOrder,
-      teamId: s.teamId,
-      teamName: s.teamName,
-    })),
-  }));
+  const byCode = new Map<PoolCode, PoolBoard>();
+  for (const p of raw) {
+    if (!POOL_CODES.includes(p.poolCode)) continue;
+    byCode.set(p.poolCode, {
+      poolCode: p.poolCode,
+      slots: (p.slots ?? []).map((s) => ({
+        slotOrder: s.slotOrder,
+        teamId: s.teamId,
+        teamName: s.teamName,
+      })),
+    });
+  }
+  return POOL_CODES.map((code) => byCode.get(code) ?? emptyPoolBoard().find((b) => b.poolCode === code)!);
 }
 
 export async function fetchPublicFixtures(): Promise<FixtureRow[]> {

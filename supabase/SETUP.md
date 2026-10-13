@@ -27,7 +27,9 @@ There is **no** `admin` table. Admin is an **Auth user**, not a database table.
 
 If you get **“relation already exists”**, tables are already there — skip to Step 2.
 
-5. **Storage** → if there is no bucket **`team-media`**, create it (**Public**).
+5. Run the rest of the migrations in order if you have not already: `002` … `010` (pools/fixtures need **007**; live admin publish buttons need **009**; separate pool vs fixture countdowns need **010**).
+
+6. **Storage** → if there is no bucket **`team-media`**, create it (**Public**).
 
 ---
 

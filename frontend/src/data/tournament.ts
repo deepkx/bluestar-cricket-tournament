@@ -1,6 +1,7 @@
 import { HOME_EVENT } from '../content/homeEvent';
 import fixturesData from '../content/fixtures.json';
 import type { TournamentPublic } from '../types/api';
+import type { PoolsFixturesBoardPhase, TeamsBoardPhase } from '../types/publish';
 import type { SiteConfigRow } from './dbTypes';
 import { requireSupabase } from '../lib/supabase';
 
@@ -12,6 +13,14 @@ const DEFAULT_SITE: SiteConfigRow = {
   registration_open: true,
   tournament_starts_at: null,
   fixture_announcement_at: null,
+  pools_reveal_at: null,
+  fixtures_reveal_at: null,
+  teams_board_phase: 'visible',
+  pools_board_phase: 'idle',
+  fixtures_board_phase: 'idle',
+  pools_draw_run: 0,
+  fixtures_draw_run: 0,
+  teams_board_run: 0,
 };
 
 export async function fetchSiteConfig(): Promise<SiteConfigRow> {
@@ -52,6 +61,14 @@ export function mapSiteConfigToTournament(cfg: SiteConfigRow): TournamentPublic 
     registrationOpensAt: null,
     registrationClosesAt: null,
     fixtureAnnouncementAt: cfg.fixture_announcement_at,
+    poolsRevealAt: cfg.pools_reveal_at ?? cfg.fixture_announcement_at ?? null,
+    fixturesRevealAt: cfg.fixtures_reveal_at ?? cfg.fixture_announcement_at ?? null,
+    teamsBoardPhase: (cfg.teams_board_phase ?? 'visible') as TeamsBoardPhase,
+    poolsBoardPhase: (cfg.pools_board_phase ?? 'idle') as PoolsFixturesBoardPhase,
+    fixturesBoardPhase: (cfg.fixtures_board_phase ?? 'idle') as PoolsFixturesBoardPhase,
+    poolsDrawRun: cfg.pools_draw_run ?? 0,
+    fixturesDrawRun: cfg.fixtures_draw_run ?? 0,
+    teamsBoardRun: cfg.teams_board_run ?? 0,
     tournamentStartsAt: cfg.tournament_starts_at,
     fixturesPublished,
     timezone: 'Asia/Kolkata',
@@ -75,6 +92,14 @@ export async function updateSiteConfig(
       | 'min_squad_size'
       | 'tournament_starts_at'
       | 'fixture_announcement_at'
+      | 'pools_reveal_at'
+      | 'fixtures_reveal_at'
+      | 'teams_board_phase'
+      | 'pools_board_phase'
+      | 'fixtures_board_phase'
+      | 'pools_draw_run'
+      | 'fixtures_draw_run'
+      | 'teams_board_run'
     >
   >,
 ) {

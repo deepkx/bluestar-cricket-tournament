@@ -112,6 +112,14 @@ body {
   background: radial-gradient(ellipse 90% 55% at 50% 100%, rgba(36, 58, 44, 0.25) 0%, transparent 58%);
 }
 
+.pool-board-table {
+  font-family: var(--font-body);
+}
+
+.pool-board-card {
+  -webkit-font-smoothing: antialiased;
+}
+
 .hud-label {
   font-family: var(--font-mono);
   font-size: 0.6875rem;

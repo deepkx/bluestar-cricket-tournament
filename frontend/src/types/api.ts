@@ -1,3 +1,5 @@
+import type { PoolsFixturesBoardPhase, TeamsBoardPhase } from './publish';
+
 export type RegistrationStatus =
   | 'PENDING_PAYMENT'
   | 'PAYMENT_PROCESSING'
@@ -22,6 +24,16 @@ export interface TournamentPublic {
   registrationOpensAt: string | null;
   registrationClosesAt: string | null;
   fixtureAnnouncementAt: string | null;
+  /** Countdown target for public /pools (independent of fixtures). */
+  poolsRevealAt: string | null;
+  /** Countdown target for public /fixtures (independent of pools). */
+  fixturesRevealAt: string | null;
+  teamsBoardPhase: TeamsBoardPhase;
+  poolsBoardPhase: PoolsFixturesBoardPhase;
+  fixturesBoardPhase: PoolsFixturesBoardPhase;
+  poolsDrawRun: number;
+  fixturesDrawRun: number;
+  teamsBoardRun: number;
   tournamentStartsAt: string | null;
   fixturesPublished: boolean;
   timezone: string;

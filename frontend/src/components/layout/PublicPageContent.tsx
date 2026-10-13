@@ -4,7 +4,7 @@ import { PublicPageSideScenery } from './PublicPageSideScenery';
 
 type Props = {
   children: ReactNode;
-  width?: 'md' | 'lg' | 'xl';
+  width?: 'md' | 'lg' | 'xl' | '2xl';
   /** Decorative pitch/photo on left & right only; center stays clean */
   sideScenery?: boolean;
   sideSceneryVariant?: 'photos' | 'heroes';
@@ -14,6 +14,7 @@ const widthClass = {
   md: 'max-w-3xl',
   lg: 'max-w-4xl',
   xl: 'max-w-5xl',
+  '2xl': 'max-w-6xl',
 } as const;
 
 export function PublicPageContent({

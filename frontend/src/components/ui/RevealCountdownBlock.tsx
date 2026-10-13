@@ -1,4 +1,4 @@
-import { HOME_EVENT, resolvePoolsFixturesRevealIso } from '../../content/homeEvent';
+import { HOME_EVENT } from '../../content/homeEvent';
 import { useCountdown } from '../../hooks/useCountdown';
 import { CountdownDisplay } from './CountdownDisplay';
 
@@ -7,12 +7,21 @@ type Props = {
   timezone: string;
   headline: string;
   subline?: string;
+  /** When false, do not fall back to marketing default date (admin must start countdown). */
+  useDefaultWhenUnset?: boolean;
 };
 
-export function RevealCountdownBlock({ targetIso, timezone, headline, subline }: Props) {
-  const resolved = resolvePoolsFixturesRevealIso(targetIso);
-  const cd = useCountdown(resolved, timezone);
-  if (cd?.expired) return null;
+export function RevealCountdownBlock({
+  targetIso,
+  timezone,
+  headline,
+  subline,
+  useDefaultWhenUnset = false,
+}: Props) {
+  const resolved =
+    targetIso ?? (useDefaultWhenUnset ? HOME_EVENT.poolsFixturesRevealIso : null);
+  const cd = useCountdown(resolved ?? undefined, timezone);
+  if (!resolved || cd?.expired) return null;
 
   return (
     <div className="rounded-sm border border-paper/15 bg-turf/40 px-6 py-10 sm:px-10 sm:py-12">

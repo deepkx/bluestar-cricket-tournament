@@ -12,6 +12,7 @@ export function useDrawReveal(
   revealed: boolean;
   phase: DrawRevealPhase;
   completeAnimation: () => void;
+  replayAnimation: () => void;
 } {
   const countdown = useCountdown(revealIso, timezone);
   const revealed = countdown?.expired ?? false;
@@ -30,13 +31,24 @@ export function useDrawReveal(
   }, [revealed, sessionKey]);
 
   const completeAnimation = useCallback(() => {
+    if (revealed) {
+      try {
+        sessionStorage.setItem(sessionKey, '1');
+      } catch {
+        /* ignore */
+      }
+    }
+    setPhase('revealed');
+  }, [sessionKey, revealed]);
+
+  const replayAnimation = useCallback(() => {
     try {
-      sessionStorage.setItem(sessionKey, '1');
+      sessionStorage.removeItem(sessionKey);
     } catch {
       /* ignore */
     }
-    setPhase('revealed');
+    setPhase('animating');
   }, [sessionKey]);
 
-  return { countdown, revealed, phase, completeAnimation };
+  return { countdown, revealed, phase, completeAnimation, replayAnimation };
 }

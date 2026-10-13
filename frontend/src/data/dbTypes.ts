@@ -8,6 +8,14 @@ export type SiteConfigRow = {
   registration_open: boolean;
   tournament_starts_at: string | null;
   fixture_announcement_at: string | null;
+  pools_reveal_at: string | null;
+  fixtures_reveal_at: string | null;
+  teams_board_phase: string;
+  pools_board_phase: string;
+  fixtures_board_phase: string;
+  pools_draw_run: number;
+  fixtures_draw_run: number;
+  teams_board_run: number;
 };
 
 export type TeamRow = {

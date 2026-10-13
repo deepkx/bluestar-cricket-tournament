@@ -1,15 +1,15 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
+import { PublicAdminPublishDock } from '../components/admin/PublicAdminPublishDock';
+import { PublishCountdownScreen } from '../components/publish/PublishCountdownScreen';
 import { listPublishedMatches } from '../data/matches';
 import { fetchPublicFixtures, type FixtureRow } from '../data/pools';
-import { getCurrentTournament } from '../data/tournament';
 import { listConfirmedTeams } from '../data/teams';
 import { PublicPageContent } from '../components/layout/PublicPageContent';
 import { PublicPageHero } from '../components/layout/PublicPageHero';
-import { RevealCountdownBlock } from '../components/ui/RevealCountdownBlock';
-import { resolvePoolsFixturesRevealIso } from '../content/homeEvent';
-import { useDrawReveal } from '../hooks/useDrawReveal';
-import type { MatchPublic, TournamentPublic } from '../types/api';
+import { useBoardDrawReveal } from '../hooks/useBoardDrawReveal';
+import { useSiteConfigPoll } from '../hooks/useSiteConfigPoll';
+import type { MatchPublic } from '../types/api';
 
 function pickRandom(names: string[]): string {
   if (names.length === 0) return 'TBD';
@@ -87,33 +87,39 @@ function FixtureCard({
 }
 
 export function FixturesPage() {
-  const [tournament, setTournament] = useState<TournamentPublic | null>(null);
+  const { tournament, refresh } = useSiteConfigPoll();
   const [matches, setMatches] = useState<(MatchPublic | FixtureRow)[]>([]);
   const [decoyNames, setDecoyNames] = useState<string[]>([]);
 
-  const revealIso = tournament ? resolvePoolsFixturesRevealIso(tournament.fixtureAnnouncementAt) : null;
-  const { phase, completeAnimation, revealed } = useDrawReveal(
+  const boardPhase = tournament?.fixturesBoardPhase ?? 'idle';
+  const timezone = tournament?.timezone ?? 'Asia/Kolkata';
+  const revealIso = tournament?.fixturesRevealAt ?? null;
+
+  const drawSessionKey = `bluestar-fixtures-reveal-r${tournament?.fixturesDrawRun ?? 0}`;
+
+  const { phase, completeAnimation, countdownLive, contentUnlocked } = useBoardDrawReveal({
     revealIso,
-    tournament?.timezone ?? 'Asia/Kolkata',
-    'bluestar-fixtures-reveal-v1',
-  );
+    timezone,
+    sessionKey: drawSessionKey,
+    boardPhase,
+  });
 
   useEffect(() => {
-    Promise.all([getCurrentTournament(), listConfirmedTeams()]).then(([t, teams]) => {
-      setTournament(t);
-      setDecoyNames(teams.map((x) => x.teamName));
-    });
+    void listConfirmedTeams().then((teams) => setDecoyNames(teams.map((x) => x.teamName)));
   }, []);
 
   useEffect(() => {
-    if (!revealed) return;
+    if (!contentUnlocked) {
+      setMatches([]);
+      return;
+    }
     fetchPublicFixtures()
       .then((rows) => {
         if (rows.length > 0) setMatches(rows);
         else return listPublishedMatches().then(setMatches);
       })
       .catch(() => listPublishedMatches().then(setMatches));
-  }, [revealed]);
+  }, [contentUnlocked]);
 
   useEffect(() => {
     if (phase !== 'animating' || matches.length === 0) return;
@@ -127,8 +133,21 @@ export function FixturesPage() {
     );
   }
 
-  const showSection = phase !== 'waiting';
+  const adminBar = <PublicAdminPublishDock preset="fixtures" onUpdated={refresh} />;
+  const showIdle = boardPhase === 'idle' && !contentUnlocked;
   const animating = phase === 'animating' && matches.length > 0;
+
+  if (countdownLive) {
+    return (
+      <PublishCountdownScreen
+        pageTitle="Fixtures"
+        headline="Fixtures countdown"
+        targetIso={revealIso}
+        timezone={timezone}
+        adminBar={adminBar}
+      />
+    );
+  }
 
   return (
     <div className="bg-ink-deep pb-20 md:pb-28">
@@ -139,20 +158,16 @@ export function FixturesPage() {
       />
 
       <PublicPageContent width="md">
-        <RevealCountdownBlock
-          targetIso={tournament.fixtureAnnouncementAt}
-          timezone={tournament.timezone}
-          headline="Fixtures countdown"
-        />
+        {adminBar ? <div className="mb-8">{adminBar}</div> : null}
 
-        {!showSection ? (
+        {showIdle ? (
           <p className="mt-14 text-center text-sm leading-relaxed text-paper/50 sm:mt-16">
-            The schedule appears when the countdown reaches zero, with a short live reveal animation.
+            The fixture list has not opened yet. Check back when the committee starts the countdown.
           </p>
         ) : null}
 
-        {showSection && matches.length > 0 ? (
-          <div className="mt-14 sm:mt-16">
+        {!showIdle && matches.length > 0 ? (
+          <div className="mt-10 sm:mt-12">
             {animating ? (
               <p className="hud-label mb-8 text-center text-floodlight-bright">Live reveal — pairing fixtures…</p>
             ) : null}
@@ -169,7 +184,7 @@ export function FixturesPage() {
           </div>
         ) : null}
 
-        {showSection && matches.length === 0 ? (
+        {!showIdle && matches.length === 0 ? (
           <p className="mt-14 text-center text-sm text-paper/50">
             Fixtures are not set yet. The committee will publish the pool schedule after the draw.
           </p>

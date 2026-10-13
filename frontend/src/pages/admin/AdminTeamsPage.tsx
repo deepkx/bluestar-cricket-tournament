@@ -53,7 +53,8 @@ export function AdminTeamsPage() {
   const [registrationOpen, setRegistrationOpen] = useState(true);
   const [testMinSquad, setTestMinSquad] = useState(false);
   const [tournamentStartLocal, setTournamentStartLocal] = useState('');
-  const [fixtureRevealLocal, setFixtureRevealLocal] = useState('');
+  const [poolsRevealLocal, setPoolsRevealLocal] = useState('');
+  const [fixturesRevealLocal, setFixturesRevealLocal] = useState('');
   const [siteSaving, setSiteSaving] = useState(false);
   const [teams, setTeams] = useState<TeamPublic[]>([]);
   const [pending, setPending] = useState<AdminTeamSummary[]>([]);
@@ -82,7 +83,12 @@ export function AdminTeamsPage() {
       setRegistrationOpen(cfg.registration_open);
       setTestMinSquad(cfg.min_squad_size <= 2);
       setTournamentStartLocal(isoToDatetimeLocal(cfg.tournament_starts_at));
-      setFixtureRevealLocal(isoToDatetimeLocal(cfg.fixture_announcement_at));
+      setPoolsRevealLocal(
+        isoToDatetimeLocal(cfg.pools_reveal_at ?? cfg.fixture_announcement_at),
+      );
+      setFixturesRevealLocal(
+        isoToDatetimeLocal(cfg.fixtures_reveal_at ?? cfg.fixture_announcement_at),
+      );
       setTeams(teamList);
       setPending(pendingList);
     } catch (err) {
@@ -105,7 +111,8 @@ export function AdminTeamsPage() {
         max_teams: maxTeams,
         min_squad_size: testMinSquad ? 2 : 11,
         tournament_starts_at: datetimeLocalToIso(tournamentStartLocal),
-        fixture_announcement_at: datetimeLocalToIso(fixtureRevealLocal),
+        pools_reveal_at: datetimeLocalToIso(poolsRevealLocal),
+        fixtures_reveal_at: datetimeLocalToIso(fixturesRevealLocal),
       });
       setSuccessMsg('Site settings saved.');
     } catch (err) {
@@ -417,12 +424,21 @@ export function AdminTeamsPage() {
           />
         </label>
         <label className="block max-w-md">
-          <span className="form-label">Pools &amp; fixtures — reveal countdown</span>
+          <span className="form-label">Pools page — countdown ends at</span>
           <input
             type="datetime-local"
             className="form-field"
-            value={fixtureRevealLocal}
-            onChange={(e) => setFixtureRevealLocal(e.target.value)}
+            value={poolsRevealLocal}
+            onChange={(e) => setPoolsRevealLocal(e.target.value)}
+          />
+        </label>
+        <label className="block max-w-md">
+          <span className="form-label">Fixtures page — countdown ends at</span>
+          <input
+            type="datetime-local"
+            className="form-field"
+            value={fixturesRevealLocal}
+            onChange={(e) => setFixturesRevealLocal(e.target.value)}
           />
         </label>
         <div className="flex flex-wrap gap-3">

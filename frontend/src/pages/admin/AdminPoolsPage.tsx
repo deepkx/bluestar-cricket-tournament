@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
+import { AdminPublishBar } from '../../components/admin/AdminPublishBar';
 import { AdminShell } from '../../components/admin/AdminShell';
+import { useSiteConfigPoll } from '../../hooks/useSiteConfigPoll';
 import {
   adminListTeamsForPools,
   adminLoadFixtures,
@@ -20,6 +22,7 @@ function newFixtureId() {
 }
 
 export function AdminPoolsPage() {
+  const { refresh } = useSiteConfigPoll();
   const [teams, setTeams] = useState<TeamPick[]>([]);
   const [boards, setBoards] = useState<PoolBoard[]>([]);
   const [fixtures, setFixtures] = useState<FixtureRow[]>([]);
@@ -152,10 +155,10 @@ export function AdminPoolsPage() {
 
   return (
     <AdminShell title="Pools & fixtures">
+      <AdminPublishBar preset="pools-and-fixtures" onUpdated={refresh} className="mb-8" />
+
       <p className="mb-6 text-sm text-paper/60">
-        Set the four pools manually (10 teams each). Nothing is public until the{' '}
-        <strong className="text-paper/75">Pools &amp; fixtures countdown</strong> on the team board reaches zero — then
-        the site runs a live shuffle animation and shows these assignments.
+        Below: edit the four pools (A–D, 10 teams each) and fixtures before you publish on the public pages.
       </p>
 
       {loading ? <p className="text-paper/50">Loading…</p> : null}
