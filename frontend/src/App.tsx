@@ -10,6 +10,7 @@ import { HomePage } from './pages/HomePage';
 import { TeamDetailPage } from './pages/TeamDetailPage';
 import { TeamsPage } from './pages/TeamsPage';
 import { AdminTeamsPage } from './pages/admin/AdminTeamsPage';
+import { AdminPoolsPage } from './pages/admin/AdminPoolsPage';
 
 function AppRoutes() {
   const location = useLocation();
@@ -47,6 +48,7 @@ function AppRoutes() {
         <Route path="admin/settings" element={<Navigate to="/admin/teams" replace />} />
         <Route path="admin/registrations" element={<Navigate to="/admin/teams" replace />} />
         <Route path="admin/teams" element={<AdminTeamsPage />} />
+        <Route path="admin/pools" element={<AdminPoolsPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <AnimatePresence>

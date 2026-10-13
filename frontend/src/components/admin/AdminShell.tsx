@@ -4,7 +4,10 @@ import { getAdminSession, signOutAdmin } from '../../data/auth';
 import { requireSupabase, supabaseConfigured } from '../../lib/supabase';
 import { AdminGateModal } from './AdminGateModal';
 
-const nav = [{ to: '/admin/teams', label: 'Team board', end: true }];
+const nav = [
+  { to: '/admin/teams', label: 'Team board' },
+  { to: '/admin/pools', label: 'Pools & fixtures' },
+];
 
 type Props = { title: string; children: ReactNode };
 
@@ -78,7 +81,7 @@ export function AdminShell({ title, children }: Props) {
             <NavLink
               key={item.to}
               to={item.to}
-              end={item.end}
+              end
               className={({ isActive }) =>
                 `shrink-0 px-3 py-1.5 text-sm ${
                   isActive

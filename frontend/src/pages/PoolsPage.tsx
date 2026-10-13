@@ -1,24 +1,75 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { PoolColumnReveal } from '../components/draw/DrawShuffleReveal';
 import { getCurrentTournament } from '../data/tournament';
+import { listConfirmedTeams } from '../data/teams';
+import { fetchPublicPools, POOL_CODES, type PoolBoard } from '../data/pools';
 import { PublicPageContent } from '../components/layout/PublicPageContent';
 import { PublicPageHero } from '../components/layout/PublicPageHero';
 import { RevealCountdownBlock } from '../components/ui/RevealCountdownBlock';
 import { resolvePoolsFixturesRevealIso } from '../content/homeEvent';
-import { useCountdown } from '../hooks/useCountdown';
+import { useDrawReveal } from '../hooks/useDrawReveal';
 import type { TournamentPublic } from '../types/api';
 
-const POOL_LABELS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'] as const;
+function emptyBoards(): PoolBoard[] {
+  return POOL_CODES.map((poolCode) => ({
+    poolCode,
+    slots: Array.from({ length: 10 }, (_, i) => ({
+      slotOrder: i + 1,
+      teamId: null,
+      teamName: null,
+    })),
+  }));
+}
 
 export function PoolsPage() {
   const [tournament, setTournament] = useState<TournamentPublic | null>(null);
+  const [pools, setPools] = useState<PoolBoard[]>([]);
+  const [allTeamNames, setAllTeamNames] = useState<string[]>([]);
+  const [loadErr, setLoadErr] = useState('');
+
+  const revealIso = tournament ? resolvePoolsFixturesRevealIso(tournament.fixtureAnnouncementAt) : null;
+  const { phase, completeAnimation, revealed } = useDrawReveal(
+    revealIso,
+    tournament?.timezone ?? 'Asia/Kolkata',
+    'bluestar-pools-reveal-v1',
+  );
 
   useEffect(() => {
     getCurrentTournament().then(setTournament);
   }, []);
 
-  const revealIso = tournament ? resolvePoolsFixturesRevealIso(tournament.fixtureAnnouncementAt) : null;
-  const cd = useCountdown(revealIso, tournament?.timezone ?? 'Asia/Kolkata');
-  const revealed = cd?.expired ?? false;
+  useEffect(() => {
+    if (!revealed) return;
+    listConfirmedTeams()
+      .then((teams) => setAllTeamNames(teams.map((t) => t.teamName)))
+      .catch(() => {});
+    fetchPublicPools()
+      .then((data) => setPools(data.length > 0 ? data : emptyBoards()))
+      .catch(() => setLoadErr('Could not load pool draw.'));
+  }, [revealed]);
+
+  const boards = pools.length > 0 ? pools : emptyBoards();
+  const [poolsAnimated, setPoolsAnimated] = useState(0);
+
+  useEffect(() => {
+    if (phase !== 'animating') setPoolsAnimated(0);
+  }, [phase]);
+
+  useEffect(() => {
+    if (phase === 'animating' && poolsAnimated >= POOL_CODES.length) {
+      completeAnimation();
+    }
+  }, [phase, poolsAnimated, completeAnimation]);
+
+  const showSection = phase !== 'waiting';
+
+  const finalNamesByPool = useMemo(
+    () =>
+      boards.map((b) =>
+        Array.from({ length: 10 }, (_, i) => b.slots.find((s) => s.slotOrder === i + 1)?.teamName ?? ''),
+      ),
+    [boards],
+  );
 
   if (!tournament) {
     return (
@@ -31,7 +82,7 @@ export function PoolsPage() {
       <PublicPageHero
         kicker="Draw"
         title="Pools"
-        lead="Eight pools of four teams. Assignments go live Thursday evening."
+        lead="Four pools of ten teams. Assignments shuffle live when the countdown hits zero."
       />
 
       <PublicPageContent width="lg">
@@ -41,33 +92,34 @@ export function PoolsPage() {
           headline="Pool draw countdown"
         />
 
-        {revealed ? (
+        {!showSection ? (
+          <p className="mt-14 text-center text-sm leading-relaxed text-paper/50 sm:mt-16">
+            Pool tables unlock when the countdown above reaches zero — then the live draw animation runs.
+          </p>
+        ) : null}
+
+        {showSection ? (
           <div className="mt-14 sm:mt-16">
-            <p className="hud-label text-center">Pool assignments</p>
+            {phase === 'animating' ? (
+              <p className="hud-label mb-6 text-center text-floodlight-bright">Live draw — shuffling teams…</p>
+            ) : (
+              <p className="hud-label text-center">Pool assignments</p>
+            )}
+            {loadErr ? <p className="mt-6 text-center text-sm text-red-300">{loadErr}</p> : null}
             <div className="mt-10 grid gap-5 sm:grid-cols-2">
-              {POOL_LABELS.map((pool) => (
-                <div key={pool} className="border border-paper/15 bg-turf/20 px-6 py-6">
-                  <p className="font-display text-2xl tracking-wide text-floodlight-dim">Pool {pool}</p>
-                  <ul className="mt-5 space-y-3 text-sm text-paper/60">
-                    {[1, 2, 3, 4].map((n) => (
-                      <li key={n} className="flex gap-3 border-b border-paper/10 pb-2 last:border-0">
-                        <span className="text-paper/30 tabular-nums">{n}.</span>
-                        <span>TBD</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+              {POOL_CODES.map((code, idx) => (
+                <PoolColumnReveal
+                  key={code}
+                  phase={phase === 'animating' ? 'animating' : 'revealed'}
+                  poolCode={code}
+                  teamNames={allTeamNames}
+                  finalTeamNames={finalNamesByPool[idx] ?? []}
+                  onPoolAnimationDone={() => setPoolsAnimated((n) => n + 1)}
+                />
               ))}
             </div>
-            <p className="mt-10 text-center text-sm text-paper/45">
-              Final pool lists will appear here once published by the committee.
-            </p>
           </div>
-        ) : (
-          <p className="mt-14 text-center text-sm leading-relaxed text-paper/50 sm:mt-16">
-            Pool tables unlock when the countdown above reaches zero.
-          </p>
-        )}
+        ) : null}
       </PublicPageContent>
     </div>
   );
