@@ -7,8 +7,8 @@
 3. **Storage:** If the migration did not create the bucket, Storage → New bucket → name `team-media`, **Public** enabled.
 4. **Auth:** Authentication → Users → **Add user** → email must match `VITE_ADMIN_EMAIL` (default `admin@bluestar.local`), password e.g. `0908`. Turn off “Confirm email” under Authentication → Providers → Email if login says unconfirmed.
 5. **Captain roster (40 teams):** Run [`migrations/006_captain_roster.sql`](migrations/006_captain_roster.sql) once — seeds the 38 invited teams with captain phone digits, sets `max_teams = 40`, and enables last-4-digit captain uploads.
-6. **Pools & fixtures:** Run [`migrations/007_pools_fixtures.sql`](migrations/007_pools_fixtures.sql) once — four pools, admin assignments, reveal after countdown.
-7. **Pool assignments (SQL):** Edit team names in [`migrations/008_seed_pools_division_test_reveal.sql`](migrations/008_seed_pools_division_test_reveal.sql) to match your real draw, then run it once (explicit A–D lists; no auto split). Fixtures: **Admin → Pools & fixtures**. Uncomment the `site_config` line in 008 only to test the shuffle animation early.
+6. **Pools & fixtures:** Run [`migrations/007_pools_fixtures.sql`](migrations/007_pools_fixtures.sql) once **or** skip 007 and run [`migrations/008_seed_pools_division_test_reveal.sql`](migrations/008_seed_pools_division_test_reveal.sql) (008 creates the same tables + loads your pool lists).
+7. Edit team names in **008** for your real draw; fixtures in **Admin → Pools & fixtures**. Uncomment the `site_config` line in 008 only to test the shuffle animation early.
 6. **2-player testing:** Run [`migrations/002_min_squad_test_default.sql`](migrations/002_min_squad_test_default.sql) only for local testing (not needed in production).
 7. **Env (Vercel + local):** copy [`frontend/.env.example`](../frontend/.env.example) to `frontend/.env.local`:
    - `VITE_SUPABASE_URL`
