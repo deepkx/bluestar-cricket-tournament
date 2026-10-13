@@ -21,19 +21,6 @@ export function TeamDetailPage() {
 
   const load = useCallback(() => {
     if (!teamName) return;
-    if (isFixedHostTeamName(teamName)) {
-      setDetail({
-        teamId: '',
-        teamName,
-        logoUrl: '/bluestar-star.svg',
-        captainName: '—',
-        confirmedAt: null,
-        players: [],
-      });
-      setSetupWarning('');
-      setLoading(false);
-      return;
-    }
     setLoading(true);
     setError('');
     setSetupWarning('');
@@ -41,6 +28,17 @@ export function TeamDetailPage() {
       .then((data) => {
         if (data) {
           setDetail(data);
+          return;
+        }
+        if (isFixedHostTeamName(teamName)) {
+          setDetail({
+            teamId: '',
+            teamName,
+            logoUrl: '/bluestar-star.svg',
+            captainName: '—',
+            confirmedAt: null,
+            players: [],
+          });
           return;
         }
         const roster = findRosterTeam(teamName);

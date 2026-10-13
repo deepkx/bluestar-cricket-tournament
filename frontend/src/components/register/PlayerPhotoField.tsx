@@ -5,9 +5,10 @@ type Props = {
   file: File | null;
   onChange: (f: File | null) => void;
   existingUrl?: string | null;
+  onClearExisting?: () => void;
 };
 
-export function PlayerPhotoField({ label, file, onChange, existingUrl }: Props) {
+export function PlayerPhotoField({ label, file, onChange, existingUrl, onClearExisting }: Props) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [focus, setFocus] = useState({ x: 50, y: 50 });
   const dragRef = useRef<{ active: boolean; startX: number; startY: number; startFx: number; startFy: number } | null>(
@@ -101,6 +102,11 @@ export function PlayerPhotoField({ label, file, onChange, existingUrl }: Props) 
               Remove
             </button>
           </div>
+        ) : null}
+        {!file && existingUrl && onClearExisting ? (
+          <button type="button" className="mt-2 text-xs text-red-300 underline" onClick={onClearExisting}>
+            Remove saved photo
+          </button>
         ) : null}
       </label>
     </div>

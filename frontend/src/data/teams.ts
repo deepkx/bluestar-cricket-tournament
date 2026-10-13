@@ -1,7 +1,12 @@
+import { HOME_EVENT } from '../content/homeEvent';
 import { requireSupabase, supabaseErrorMessage } from '../lib/supabase';
 import type { TeamPublic, RegistrationStatus } from '../types/api';
 import type { PlayerRow, TeamRow, TeamStatus } from './dbTypes';
 import { removeStoragePaths, storagePublicUrl, uploadPlayerPhoto, uploadTeamLogo } from './storage';
+
+function normalizeTeamName(s: string): string {
+  return s.trim().toLowerCase().replace(/\s+/g, ' ');
+}
 
 function mapStatus(status: TeamStatus): RegistrationStatus {
   if (status === 'confirmed') return 'CONFIRMED';
@@ -148,6 +153,45 @@ export type AdminTeamEdit = {
   }[];
 };
 
+/** Create or return confirmed team row (used for host slots and roster-only board rows). */
+export async function adminEnsureTeamOnBoard(teamName: string): Promise<string> {
+  const sb = requireSupabase();
+  const normalized = normalizeTeamName(teamName);
+  const { data: existing, error: findErr } = await sb
+    .from('teams')
+    .select('id, status')
+    .eq('normalized_name', normalized)
+    .maybeSingle();
+  if (findErr) throw findErr;
+  if (existing?.id) {
+    if ((existing as { status: TeamStatus }).status !== 'confirmed') {
+      const { error } = await sb
+        .from('teams')
+        .update({ status: 'confirmed', confirmed_at: new Date().toISOString() })
+        .eq('id', existing.id);
+      if (error) throw error;
+    }
+    return existing.id as string;
+  }
+
+  const hostIdx = HOME_EVENT.hostTeamNames.findIndex((h) => normalizeTeamName(h) === normalized);
+  const sortOrder = hostIdx >= 0 ? hostIdx + 1 : null;
+
+  const { data: team, error } = await sb
+    .from('teams')
+    .insert({
+      team_name: teamName.trim(),
+      captain_name: hostIdx >= 0 ? 'Host' : 'Captain',
+      status: 'confirmed',
+      confirmed_at: new Date().toISOString(),
+      sort_order: sortOrder,
+    })
+    .select('id')
+    .single();
+  if (error) throw error;
+  return (team as { id: string }).id;
+}
+
 export async function getTeamForAdminEdit(teamId: string): Promise<AdminTeamEdit> {
   const sb = requireSupabase();
   const { data: team, error } = await sb.from('teams').select('*').eq('id', teamId).single();
@@ -235,7 +279,9 @@ export async function adminSaveTeamEdit(
   edit: AdminTeamEdit,
   opts: {
     newTeamLogo: File | null;
+    removeTeamLogo: boolean;
     newPhotos: Map<number, File>;
+    removePhotos: Set<number>;
     removedPlayerIds: string[];
   },
 ) {
@@ -243,6 +289,10 @@ export async function adminSaveTeamEdit(
   const teamId = edit.id;
 
   let logoPath = edit.teamLogoUrl;
+  if (opts.removeTeamLogo && edit.teamLogoUrl) {
+    await removeStoragePaths([edit.teamLogoUrl]);
+    logoPath = null;
+  }
   if (opts.newTeamLogo) {
     logoPath = await uploadTeamLogo(teamId, opts.newTeamLogo);
   }
@@ -273,6 +323,10 @@ export async function adminSaveTeamEdit(
     const newFile = opts.newPhotos.get(i) ?? null;
     if (p.id) {
       let photoPath = p.photoUrl;
+      if (opts.removePhotos.has(i) && p.photoUrl) {
+        await removeStoragePaths([p.photoUrl]);
+        photoPath = null;
+      }
       if (newFile) {
         photoPath = await uploadPlayerPhoto(teamId, p.id, newFile);
       }

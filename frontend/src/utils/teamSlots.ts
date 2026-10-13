@@ -34,12 +34,14 @@ export function buildTeamSlotRows(maxTeams: number, confirmed: TeamPublic[]): Te
 
   const rows: TeamSlotRow[] = [];
   for (let h = 0; h < HOST_SLOT_COUNT; h++) {
+    const hostName = HOME_EVENT.hostTeamNames[h] ?? HOME_EVENT.hostTeamName;
+    const dbHost = confirmed.find((t) => normalizeTeamName(t.teamName) === normalizeTeamName(hostName));
     rows.push({
       slot: h + 1,
-      teamName: HOME_EVENT.hostTeamNames[h] ?? HOME_EVENT.hostTeamName,
-      registrationId: null,
+      teamName: hostName,
+      registrationId: dbHost?.registrationId ?? null,
       kind: 'host',
-      registeredAt: null,
+      registeredAt: dbHost?.confirmedAt ?? null,
       rosterOnly: false,
     });
   }

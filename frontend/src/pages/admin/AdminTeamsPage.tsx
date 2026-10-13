@@ -6,6 +6,7 @@ import { datetimeLocalToIso, isoToDatetimeLocal } from '../../utils/datetimeLoca
 import {
   adminAddConfirmedTeam,
   adminDeleteTeamFromBoard,
+  adminEnsureTeamOnBoard,
   adminFetchTeamWithPhotosForDownload,
   adminSaveTeamEdit,
   approveTeam,
@@ -20,9 +21,8 @@ import { fetchSiteConfig, updateSiteConfig } from '../../data/tournament';
 import { signOutAdmin } from '../../data/auth';
 import type { TeamPublic } from '../../types/api';
 import { downloadAllTeamsPhotosZip, downloadTeamPhotosZip } from '../../utils/downloadTeamPhotos';
-import { formatRegisteredAt } from '../../utils/formatDateTime';
 import { mediaUrl } from '../../utils/mediaUrl';
-import { buildTeamSlotRows } from '../../utils/teamSlots';
+import { buildTeamSlotRows, type TeamSlotRow } from '../../utils/teamSlots';
 import { apiErrorMessage } from '../../utils/errors';
 
 type EditPlayer = {
@@ -33,6 +33,7 @@ type EditPlayer = {
   playingRole: string;
   photoUrl: string | null;
   newPhoto: File | null;
+  photoRemoved: boolean;
 };
 
 type EditState = {
@@ -42,6 +43,7 @@ type EditState = {
   captainName: string;
   teamLogoUrl: string | null;
   newTeamLogo: File | null;
+  logoRemoved: boolean;
   players: EditPlayer[];
   removedPlayerIds: string[];
 };
@@ -121,6 +123,16 @@ export function AdminTeamsPage() {
     setError('');
     try {
       const data = await getTeamForAdminEdit(registrationId);
+      const mappedPlayers = data.players.map((p) => ({
+        id: p.id,
+        fullName: p.fullName,
+        captain: p.captain,
+        jerseyNumber: p.jerseyNumber,
+        playingRole: p.playingRole,
+        photoUrl: p.photoUrl,
+        newPhoto: null,
+        photoRemoved: false,
+      }));
       setEdit({
         id: data.id,
         teamName: data.teamName,
@@ -128,17 +140,39 @@ export function AdminTeamsPage() {
         captainName: data.captainName,
         teamLogoUrl: data.teamLogoUrl,
         newTeamLogo: null,
+        logoRemoved: false,
         removedPlayerIds: [],
-        players: data.players.map((p) => ({
-          id: p.id,
-          fullName: p.fullName,
-          captain: p.captain,
-          jerseyNumber: p.jerseyNumber,
-          playingRole: p.playingRole,
-          photoUrl: p.photoUrl,
-          newPhoto: null,
-        })),
+        players:
+          mappedPlayers.length > 0
+            ? mappedPlayers
+            : [
+                {
+                  id: null,
+                  fullName: '',
+                  captain: true,
+                  jerseyNumber: '',
+                  playingRole: '',
+                  photoUrl: null,
+                  newPhoto: null,
+                  photoRemoved: false,
+                },
+              ],
       });
+    } catch (err) {
+      setError(apiErrorMessage(err, 'Could not open team for editing'));
+    }
+  };
+
+  const openManageTeam = async (row: TeamSlotRow) => {
+    if (!row.teamName || row.kind === 'open') return;
+    setError('');
+    try {
+      let teamId = row.registrationId;
+      if (!teamId) {
+        teamId = await adminEnsureTeamOnBoard(row.teamName);
+        await load();
+      }
+      await openEdit(teamId);
     } catch (err) {
       setError(apiErrorMessage(err, 'Could not open team for editing'));
     }
@@ -206,12 +240,16 @@ export function AdminTeamsPage() {
     setError('');
     try {
       const newPhotos = new Map<number, File>();
+      const removePhotos = new Set<number>();
       edit.players.forEach((p, i) => {
         if (p.newPhoto) newPhotos.set(i, p.newPhoto);
+        else if (p.photoRemoved) removePhotos.add(i);
       });
       await adminSaveTeamEdit(edit, {
         newTeamLogo: edit.newTeamLogo,
+        removeTeamLogo: edit.logoRemoved,
         newPhotos,
+        removePhotos,
         removedPlayerIds: edit.removedPlayerIds,
       });
       setEdit(null);
@@ -327,6 +365,7 @@ export function AdminTeamsPage() {
           playingRole: '',
           photoUrl: null,
           newPhoto: null,
+          photoRemoved: false,
         },
       ],
     });
@@ -335,7 +374,8 @@ export function AdminTeamsPage() {
   return (
     <AdminShell title="Team board">
       <p className="mb-6 text-sm text-paper/60">
-        Approve registrations, manage the public board, edit squads, and download team photos.
+        Edit any team squad (names, photos, add or remove players). Host teams use the same editor — open{' '}
+        <strong className="text-paper/80">Manage</strong> on Bluestar / Bluestar B.
       </p>
 
       <div className="register-panel mb-8 space-y-4 px-5 py-5">
@@ -459,46 +499,52 @@ export function AdminTeamsPage() {
         {rows.map((row) => (
           <li
             key={row.slot}
-            className="grid grid-cols-1 gap-2 px-4 py-3 sm:grid-cols-[2rem_1fr_10rem_auto] sm:items-center sm:gap-3 sm:px-5"
+            className="grid grid-cols-1 gap-2 px-4 py-3 sm:grid-cols-[2rem_1fr_auto] sm:items-center sm:gap-3 sm:px-5"
           >
             <span className="hud-stat text-paper/45">{row.slot}</span>
             {row.kind === 'open' ? (
               <span className="text-sm text-paper/35">Open slot</span>
             ) : (
               <>
-                <span className="font-display text-lg text-floodlight-bright">{row.teamName}</span>
-                <span className="text-sm tabular-nums text-paper/50">
-                  {formatRegisteredAt(row.registeredAt, 'Asia/Kolkata')}
-                </span>
-                {row.kind === 'host' ? (
-                  <span className="text-xs text-paper/45">{row.teamName} (host)</span>
-                ) : (
-                  <div className="flex flex-wrap gap-3">
-                    <button
-                      type="button"
-                      className="text-sm text-electric underline"
-                      onClick={() => void openEdit(row.registrationId!)}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      className="text-sm text-paper/70 underline disabled:opacity-40"
-                      disabled={downloadingId === row.registrationId}
-                      onClick={() => void downloadOne(row.registrationId!)}
-                    >
-                      {downloadingId === row.registrationId ? '…' : 'Photos'}
-                    </button>
-                    <button
-                      type="button"
-                      className="text-sm text-red-300 underline disabled:opacity-40"
-                      disabled={deleting}
-                      onClick={() => requestDelete(row.registrationId, row.teamName!)}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                )}
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-display text-lg text-floodlight-bright">{row.teamName}</span>
+                  {row.kind === 'host' ? (
+                    <span className="funk-skew-chip border border-floodlight/40 px-2 py-0.5 text-[10px] font-medium uppercase tracking-widest text-floodlight-bright">
+                      Host
+                    </span>
+                  ) : null}
+                </div>
+                <div className="flex flex-wrap gap-3 sm:justify-end">
+                  <button
+                    type="button"
+                    className="text-sm font-medium text-floodlight-bright underline"
+                    onClick={() => void openManageTeam(row)}
+                  >
+                    Manage
+                  </button>
+                  {row.registrationId ? (
+                    <>
+                      <button
+                        type="button"
+                        className="text-sm text-paper/70 underline disabled:opacity-40"
+                        disabled={downloadingId === row.registrationId}
+                        onClick={() => void downloadOne(row.registrationId!)}
+                      >
+                        {downloadingId === row.registrationId ? '…' : 'Photos zip'}
+                      </button>
+                      {row.kind !== 'host' ? (
+                        <button
+                          type="button"
+                          className="text-sm text-red-300 underline disabled:opacity-40"
+                          disabled={deleting}
+                          onClick={() => requestDelete(row.registrationId, row.teamName!)}
+                        >
+                          Delete
+                        </button>
+                      ) : null}
+                    </>
+                  ) : null}
+                </div>
               </>
             )}
           </li>
@@ -562,8 +608,13 @@ export function AdminTeamsPage() {
                 <PlayerPhotoField
                   label="Team logo"
                   file={edit.newTeamLogo}
-                  existingUrl={mediaUrl(edit.teamLogoUrl)}
-                  onChange={(f) => setEdit({ ...edit, newTeamLogo: f })}
+                  existingUrl={edit.logoRemoved ? null : mediaUrl(edit.teamLogoUrl)}
+                  onChange={(f) => setEdit({ ...edit, newTeamLogo: f, logoRemoved: false })}
+                  onClearExisting={
+                    edit.teamLogoUrl && !edit.logoRemoved
+                      ? () => setEdit({ ...edit, logoRemoved: true, newTeamLogo: null })
+                      : undefined
+                  }
                 />
               </div>
 
@@ -583,11 +634,9 @@ export function AdminTeamsPage() {
                           <input type="radio" name="captain" checked={p.captain} onChange={() => setCaptain(i)} />
                           Captain
                         </label>
-                        {edit.players.length > 1 ? (
-                          <button type="button" className="text-xs text-red-300 underline" onClick={() => removePlayerRow(i)}>
-                            Remove
-                          </button>
-                        ) : null}
+                        <button type="button" className="text-xs text-red-300 underline" onClick={() => removePlayerRow(i)}>
+                          Remove player
+                        </button>
                       </div>
                     </div>
                     <label className="mt-3 block">
@@ -622,8 +671,13 @@ export function AdminTeamsPage() {
                       <PlayerPhotoField
                         label="Player photo"
                         file={p.newPhoto}
-                        existingUrl={mediaUrl(p.photoUrl)}
-                        onChange={(f) => updatePlayer(i, { newPhoto: f })}
+                        existingUrl={p.photoRemoved ? null : mediaUrl(p.photoUrl)}
+                        onChange={(f) => updatePlayer(i, { newPhoto: f, photoRemoved: false })}
+                        onClearExisting={
+                          p.photoUrl && !p.photoRemoved
+                            ? () => updatePlayer(i, { photoRemoved: true, newPhoto: null })
+                            : undefined
+                        }
                       />
                     </div>
                   </li>
