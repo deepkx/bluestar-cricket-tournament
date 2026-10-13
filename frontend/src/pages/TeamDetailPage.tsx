@@ -135,10 +135,10 @@ export function TeamDetailPage() {
             {canCaptainAdd && !rosterEdit ? (
               <button
                 type="button"
-                className="squad-add-link mt-8 w-full text-sm sm:text-base"
+                className="squad-add-link squad-add-link--hero mt-8 w-full sm:w-auto"
                 onClick={openCaptainFlow}
               >
-                {detail.players.length > 0 ? 'Update squad photos' : 'Add squad photos'}
+                <span>{detail.players.length > 0 ? 'Update squad' : 'Add squad'}</span>
               </button>
             ) : null}
 

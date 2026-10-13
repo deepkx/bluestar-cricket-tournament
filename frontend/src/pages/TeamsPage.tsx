@@ -95,7 +95,7 @@ export function TeamsPage() {
 
         {!loading && (
           <div className="mt-6 border border-paper/15">
-            <div className="grid grid-cols-[2.5rem_1fr_minmax(7.5rem,auto)] gap-3 border-b border-paper/12 bg-turf/30 px-4 py-3 text-xs font-medium uppercase tracking-widest text-paper/50 sm:grid-cols-[3rem_1fr_10rem] sm:gap-4 sm:px-6">
+            <div className="grid grid-cols-[2.5rem_1fr_minmax(6.5rem,auto)] gap-3 border-b border-paper/12 bg-turf/30 px-4 py-3 text-xs font-medium uppercase tracking-widest text-paper/50 sm:grid-cols-[3rem_1fr_8.5rem] sm:gap-4 sm:px-6">
               <span>#</span>
               <span>Team</span>
               <span className="text-right sm:text-center">Squad</span>
@@ -110,7 +110,7 @@ export function TeamsPage() {
                 return (
                   <li
                     key={row.slot}
-                    className={`grid grid-cols-[2.5rem_1fr_minmax(7.5rem,auto)] items-center gap-3 px-4 py-3 sm:grid-cols-[3rem_1fr_10rem] sm:gap-4 sm:px-6 sm:py-4 ${
+                    className={`grid grid-cols-[2.5rem_1fr_minmax(6.5rem,auto)] items-center gap-3 px-4 py-3 sm:grid-cols-[3rem_1fr_8.5rem] sm:gap-4 sm:px-6 sm:py-4 ${
                       row.kind === 'host' ? 'bg-floodlight/[0.08]' : rowStripe
                     }`}
                   >
@@ -148,9 +148,9 @@ export function TeamsPage() {
                       {addSquad ? (
                         <Link
                           to={`/teams/${encodeURIComponent(row.teamName)}?captain=1`}
-                          className="squad-add-link w-full min-w-[7.25rem] text-center"
+                          className="squad-add-link"
                         >
-                          Add squad
+                          <span>+ Add</span>
                         </Link>
                       ) : (
                         <span className="px-2 text-xs text-paper/25">—</span>
