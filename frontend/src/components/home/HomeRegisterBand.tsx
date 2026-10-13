@@ -1,12 +1,9 @@
 import { Link } from 'react-router-dom';
 import { HOME_EVENT } from '../../content/homeEvent';
-import type { TournamentPublic } from '../../types/api';
 import { CricketPhotoBackdrop } from '../ui/CricketPhotoBackdrop';
 import { CricketerSilhouette } from '../ui/CricketerSilhouette';
 
-type Props = { tournament: TournamentPublic };
-
-export function HomeRegisterBand({ tournament }: Props) {
+export function HomeRegisterBand() {
   return (
     <div className="relative overflow-hidden border-t border-floodlight/25">
       <CricketPhotoBackdrop photo="bowler" emphasis="section" />
@@ -22,18 +19,12 @@ export function HomeRegisterBand({ tournament }: Props) {
         </p>
       </div>
       <div className="flex w-full flex-col gap-3 sm:w-auto sm:min-w-[12rem]">
-        {tournament.registrationOpen ? (
-          <Link to="/register" className="btn-primary w-full text-center text-sm">
-            Register your team
-          </Link>
-        ) : (
-          <>
-            <span className="block text-center text-sm text-paper/50">Registration is not open right now.</span>
-            <Link to="/about" className="btn-outline w-full text-center text-sm">
-              About & rules
-            </Link>
-          </>
-        )}
+        <Link to="/teams" className="btn-primary w-full text-center text-sm">
+          View all teams
+        </Link>
+        <Link to="/about" className="btn-outline w-full text-center text-sm">
+          About & rules
+        </Link>
       </div>
     </div>
     </div>

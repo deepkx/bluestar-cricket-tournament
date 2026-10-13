@@ -2,17 +2,22 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { listConfirmedTeams } from '../data/teams';
 import { getCurrentTournament } from '../data/tournament';
+import { TOURNAMENT_MAX_TEAMS } from '../content/tournamentTeams';
 import { PublicPageContent } from '../components/layout/PublicPageContent';
 import { PublicPageHero } from '../components/layout/PublicPageHero';
 import type { TeamPublic, TournamentPublic } from '../types/api';
-import { formatRegisteredAt } from '../utils/formatDateTime';
 import { buildTeamSlotRows, teamSlotStats } from '../utils/teamSlots';
+
+function showSquadAdd(row: { kind: string; teamName: string | null }): row is { kind: 'filled'; teamName: string } {
+  return row.kind === 'filled' && Boolean(row.teamName);
+}
 
 export function TeamsPage() {
   const [tournament, setTournament] = useState<TournamentPublic | null>(null);
   const [teams, setTeams] = useState<TeamPublic[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
+  const [query, setQuery] = useState('');
 
   const loadTeams = useCallback(() => {
     setLoading(true);
@@ -22,7 +27,10 @@ export function TeamsPage() {
         setTournament(t);
         setTeams(teamList);
       })
-      .catch(() => setErr('Failed to load teams'))
+      .catch(() => {
+        setErr('Could not load live data from Supabase. Teams below are from the fixed tournament list.');
+        setTeams([]);
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -30,14 +38,18 @@ export function TeamsPage() {
     loadTeams();
   }, [loadTeams]);
 
-  const maxTeams = tournament?.maxTeams ?? 32;
-  const timeZone = tournament?.timezone ?? 'Asia/Kolkata';
+  const maxTeams = tournament?.maxTeams ?? TOURNAMENT_MAX_TEAMS;
   const rows = useMemo(() => buildTeamSlotRows(maxTeams, teams), [maxTeams, teams]);
   const stats = useMemo(() => teamSlotStats(maxTeams, teams), [maxTeams, teams]);
+  const filteredRows = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return rows;
+    return rows.filter((row) => row.teamName?.toLowerCase().includes(q));
+  }, [rows, query]);
 
   return (
     <div className="bg-ink-deep pb-20 md:pb-28">
-      <PublicPageHero kicker="Squads" title="Registered teams" sideScenery />
+      <PublicPageHero kicker="Squads" title="Teams" sideScenery />
 
       <PublicPageContent width="lg" sideScenery>
         <div className="flex flex-wrap items-center justify-center gap-10 border border-paper/15 bg-turf/25 px-8 py-6 sm:gap-16">
@@ -53,61 +65,97 @@ export function TeamsPage() {
         </div>
 
         {loading && <p className="mt-14 text-center text-paper/50">Loading…</p>}
-        {err && <p className="mt-14 text-center text-paper/70">{err}</p>}
+        {err && (
+          <p className="mt-6 border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-center text-sm text-amber-100/90">
+            {err}
+          </p>
+        )}
 
-        {!loading && !err && (
-          <div className="mt-12 border border-paper/15">
-            <div className="hidden border-b border-paper/12 bg-turf/30 px-4 py-3 text-xs font-medium uppercase tracking-widest text-paper/50 sm:grid sm:grid-cols-[3rem_1fr_11rem] sm:gap-4 sm:px-6">
+        {!loading && (
+          <div className="mt-12">
+            <p className="mb-4 text-center text-sm text-paper/55">
+              Captains: tap <span className="font-semibold text-floodlight-bright">Add squad</span>, then enter the last
+              4 digits of your mobile number on file.
+            </p>
+            <label className="block">
+              <span className="sr-only">Search teams</span>
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search by team name…"
+                className="form-field w-full border border-paper/15 bg-turf/20"
+              />
+            </label>
+            {query.trim() && filteredRows.length === 0 ? (
+              <p className="mt-6 text-center text-sm text-paper/50">No teams match your search.</p>
+            ) : null}
+          </div>
+        )}
+
+        {!loading && (
+          <div className="mt-6 border border-paper/15">
+            <div className="grid grid-cols-[2.5rem_1fr_minmax(7.5rem,auto)] gap-3 border-b border-paper/12 bg-turf/30 px-4 py-3 text-xs font-medium uppercase tracking-widest text-paper/50 sm:grid-cols-[3rem_1fr_10rem] sm:gap-4 sm:px-6">
               <span>#</span>
               <span>Team</span>
-              <span className="text-right">Registered</span>
+              <span className="text-right sm:text-center">Squad</span>
             </div>
             <ul className="divide-y divide-paper/12">
-              {rows.map((row) => {
+              {filteredRows.map((row) => {
                 const rowStripe =
                   row.slot % 2 === 1 ? 'bg-floodlight/[0.04]' : row.kind === 'open' ? 'bg-transparent' : 'bg-turf/15';
                 const nameGold = row.slot % 2 === 1;
-                const registeredLabel =
-                  row.kind === 'host' ? '—' : formatRegisteredAt(row.registeredAt, timeZone);
+                const addSquad = showSquadAdd(row);
+
                 return (
                   <li
                     key={row.slot}
-                    className={`grid grid-cols-1 gap-1 px-4 py-4 sm:grid-cols-[3rem_1fr_11rem] sm:items-center sm:gap-4 sm:px-6 sm:py-4 ${
+                    className={`grid grid-cols-[2.5rem_1fr_minmax(7.5rem,auto)] items-center gap-3 px-4 py-3 sm:grid-cols-[3rem_1fr_10rem] sm:gap-4 sm:px-6 sm:py-4 ${
                       row.kind === 'host' ? 'bg-floodlight/[0.08]' : rowStripe
                     }`}
                   >
                     <span
-                      className={`hud-stat text-lg tabular-nums sm:w-10 ${
+                      className={`hud-stat text-lg tabular-nums ${
                         nameGold ? 'text-floodlight-dim' : 'text-paper/45'
                       }`}
                     >
                       {row.slot}
                     </span>
-                    <div className="flex min-w-0 flex-wrap items-center gap-2">
+
+                    <div className="min-w-0">
                       {row.kind === 'open' ? (
                         <span className="text-sm text-paper/35">Open slot</span>
                       ) : (
-                        <Link
-                          to={`/teams/${encodeURIComponent(row.teamName!)}`}
-                          className={`font-display text-lg tracking-wide hover:underline sm:text-xl ${
-                            nameGold ? 'text-floodlight-bright' : 'text-paper'
-                          }`}
-                        >
-                          {row.teamName}
-                        </Link>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Link
+                            to={`/teams/${encodeURIComponent(row.teamName!)}`}
+                            className={`font-display text-base tracking-wide hover:underline sm:text-lg ${
+                              nameGold ? 'text-floodlight-bright' : 'text-paper'
+                            }`}
+                          >
+                            {row.teamName}
+                          </Link>
+                          {row.kind === 'host' ? (
+                            <span className="funk-skew-chip border border-floodlight/40 px-2 py-0.5 text-[10px] font-medium uppercase tracking-widest text-floodlight-bright">
+                              Host
+                            </span>
+                          ) : null}
+                        </div>
                       )}
-                      {row.kind === 'host' ? (
-                        <span className="funk-skew-chip border border-floodlight/40 px-2 py-0.5 text-[10px] font-medium uppercase tracking-widest text-floodlight-bright">
-                          Host
-                        </span>
-                      ) : null}
-                      <span className="text-xs text-paper/45 sm:hidden">
-                        Registered: {registeredLabel}
-                      </span>
                     </div>
-                    <span className="hidden text-right text-sm tabular-nums text-paper/55 sm:block">
-                      {registeredLabel}
-                    </span>
+
+                    <div className="flex justify-end sm:justify-center">
+                      {addSquad ? (
+                        <Link
+                          to={`/teams/${encodeURIComponent(row.teamName)}?captain=1`}
+                          className="squad-add-link w-full min-w-[7.25rem] text-center"
+                        >
+                          Add squad
+                        </Link>
+                      ) : (
+                        <span className="px-2 text-xs text-paper/25">—</span>
+                      )}
+                    </div>
                   </li>
                 );
               })}

@@ -7,8 +7,6 @@ import { AboutPage } from './pages/AboutPage';
 import { FixturesPage } from './pages/FixturesPage';
 import { PoolsPage } from './pages/PoolsPage';
 import { HomePage } from './pages/HomePage';
-import { RegisterPage } from './pages/RegisterPage';
-import { RegistrationSuccessPage } from './pages/RegistrationSuccessPage';
 import { TeamDetailPage } from './pages/TeamDetailPage';
 import { TeamsPage } from './pages/TeamsPage';
 import { AdminTeamsPage } from './pages/admin/AdminTeamsPage';
@@ -35,8 +33,8 @@ function AppRoutes() {
           <Route path="teams/:teamName" element={<TeamDetailPage />} />
           <Route path="pools" element={<PoolsPage />} />
           <Route path="fixtures" element={<FixturesPage />} />
-          <Route path="register" element={<RegisterPage />} />
-          <Route path="registration/success" element={<RegistrationSuccessPage />} />
+          <Route path="register" element={<Navigate to="/teams" replace />} />
+          <Route path="registration/success" element={<Navigate to="/teams" replace />} />
           <Route path="status" element={<Navigate to="/teams" replace />} />
           <Route path="results" element={<Navigate to="/" replace />} />
           <Route path="bracket" element={<Navigate to="/" replace />} />

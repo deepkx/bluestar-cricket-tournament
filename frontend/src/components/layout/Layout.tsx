@@ -65,10 +65,10 @@ export function Layout({ introActive = false }: LayoutProps) {
               Admin
             </button>
             <Link
-              to="/register"
+              to="/teams"
               className="bg-floodlight px-5 py-2 text-sm font-semibold text-black hover:bg-floodlight-bright"
             >
-              Register
+              Teams
             </Link>
           </nav>
           <button
@@ -101,11 +101,11 @@ export function Layout({ introActive = false }: LayoutProps) {
               Admin
             </button>
             <Link
-              to="/register"
+              to="/teams"
               onClick={() => setOpen(false)}
               className="mt-2 bg-floodlight py-3 text-center text-sm font-semibold text-black"
             >
-              Register
+              Teams
             </Link>
           </nav>
         )}

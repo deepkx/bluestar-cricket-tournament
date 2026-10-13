@@ -41,6 +41,10 @@ body {
   @apply inline-block bg-floodlight px-8 py-3.5 font-semibold text-black transition hover:bg-floodlight-bright;
 }
 
+.squad-add-link {
+  @apply inline-flex shrink-0 items-center justify-center border-2 border-floodlight-bright bg-floodlight px-4 py-2 text-xs font-bold uppercase tracking-wide text-black no-underline shadow-[0_0_12px_rgba(212,175,55,0.35)] transition hover:bg-floodlight-bright;
+}
+
 .btn-outline {
   @apply inline-block border border-paper/45 px-8 py-3.5 font-medium text-paper transition;
 }

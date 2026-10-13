@@ -60,8 +60,8 @@ export function HomeHero({ tournament, introActive }: Props) {
             {HOME_EVENT.heroHeadline}
           </p>
           <div className="mt-8 flex w-full flex-col items-stretch gap-3 sm:mt-10 sm:w-auto sm:flex-row sm:items-center sm:justify-center sm:gap-4">
-            <Link to="/register" className="btn-primary w-full text-center text-sm sm:min-w-[9rem] sm:w-auto">
-              Register
+            <Link to="/teams" className="btn-primary w-full text-center text-sm sm:min-w-[9rem] sm:w-auto">
+              View teams
             </Link>
             <Link to="/about" className="btn-outline w-full text-center text-sm sm:min-w-[9rem] sm:w-auto">
               Rules

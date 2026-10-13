@@ -46,7 +46,7 @@ export function HomePage({ introActive }: Props) {
         <HomeVenueMap />
       </ScrollSection>
 
-      <HomeRegisterBand tournament={tournament} />
+      <HomeRegisterBand />
 
       {announcements.length > 0 && (
         <ScrollSection index="05" title="News" kicker="Latest" invert>

@@ -17,6 +17,8 @@ export type TeamRow = {
   normalized_name: string;
   city: string | null;
   captain_name: string;
+  captain_phone_digits: string | null;
+  sort_order: number | null;
   logo_path: string | null;
   status: TeamStatus;
   confirmed_at: string | null;

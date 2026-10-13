@@ -36,6 +36,7 @@ export interface TeamPublic {
   logoUrl: string | null;
   status: RegistrationStatus;
   confirmedAt: string | null;
+  sortOrder: number | null;
 }
 
 export interface TournamentAvailability {

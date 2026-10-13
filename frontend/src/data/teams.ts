@@ -16,6 +16,7 @@ export function teamRowToPublic(row: TeamRow): TeamPublic {
     logoUrl: row.logo_path,
     status: mapStatus(row.status),
     confirmedAt: row.confirmed_at,
+    sortOrder: row.sort_order ?? null,
   };
 }
 
@@ -27,10 +28,18 @@ export async function listConfirmedTeams(): Promise<TeamPublic[]> {
     .eq('status', 'confirmed')
     .order('confirmed_at', { ascending: true });
   if (error) throw error;
-  return ((data ?? []) as TeamRow[]).map(teamRowToPublic);
+  const rows = (data ?? []) as TeamRow[];
+  rows.sort((a, b) => {
+    const sa = a.sort_order ?? 9999;
+    const sb = b.sort_order ?? 9999;
+    if (sa !== sb) return sa - sb;
+    return a.team_name.localeCompare(b.team_name);
+  });
+  return rows.map(teamRowToPublic);
 }
 
 export type TeamDetail = {
+  teamId: string;
   teamName: string;
   logoUrl: string | null;
   captainName: string;
@@ -57,6 +66,7 @@ export async function getTeamByName(teamName: string): Promise<TeamDetail | null
     .order('sort_order', { ascending: true });
   if (pErr) throw pErr;
   return {
+    teamId: row.id,
     teamName: row.team_name,
     logoUrl: row.logo_path,
     captainName: row.captain_name,
