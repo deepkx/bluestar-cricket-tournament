@@ -138,7 +138,7 @@ export function TeamDetailPage() {
                 className="squad-add-link squad-add-link--hero mt-8 w-full sm:w-auto"
                 onClick={openCaptainFlow}
               >
-                <span>{detail.players.length > 0 ? 'Update squad' : 'Add squad'}</span>
+                {detail.players.length > 0 ? 'Update squad' : 'Add squad'}
               </button>
             ) : null}
 

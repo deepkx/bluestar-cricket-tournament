@@ -150,7 +150,7 @@ export function TeamsPage() {
                           to={`/teams/${encodeURIComponent(row.teamName)}?captain=1`}
                           className="squad-add-link"
                         >
-                          <span>+ Add</span>
+                          Add squad
                         </Link>
                       ) : (
                         <span className="px-2 text-xs text-paper/25">—</span>

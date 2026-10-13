@@ -42,28 +42,28 @@ body {
 }
 
 .squad-add-link {
-  @apply inline-flex shrink-0 items-center justify-center gap-1.5 border border-floodlight/45 bg-floodlight/[0.07] px-3 py-1.5 text-[11px] font-medium uppercase tracking-[0.18em] text-floodlight-bright no-underline transition;
-  transform: skewX(-4deg);
+  @apply inline-flex shrink-0 items-center gap-1 text-[11px] font-medium uppercase tracking-[0.2em] text-floodlight-bright no-underline transition;
+}
+
+.squad-add-link::before {
+  content: "+";
+  font-size: 0.95rem;
+  line-height: 1;
+  opacity: 0.85;
 }
 
 .squad-add-link:hover {
-  border-color: var(--color-floodlight-bright);
-  background: color-mix(in srgb, var(--color-floodlight) 14%, transparent);
   color: var(--color-paper);
-}
-
-.squad-add-link > span {
-  display: inline-block;
-  transform: skewX(4deg);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .squad-add-link--hero {
-  @apply px-5 py-2.5 text-xs tracking-[0.14em];
-  transform: none;
+  @apply border border-floodlight/40 bg-floodlight/[0.08] px-5 py-2.5 text-xs tracking-[0.14em] hover:bg-floodlight/[0.12] hover:no-underline;
 }
 
-.squad-add-link--hero > span {
-  transform: none;
+.squad-add-link--hero::before {
+  content: none;
 }
 
 .btn-outline {

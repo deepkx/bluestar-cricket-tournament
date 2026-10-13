@@ -31,7 +31,11 @@ Or run `./scripts/deploy-vercel-supabase.sh` (opens the import page).
 
 Do **not** set `VITE_API_BASE_URL` unless you are running the legacy Java API locally.
 
-Deploy. Open the site → **Register** submits to Supabase as **pending** → **Admin** (password) → approve on **Team board** → team appears on `/teams`.
+Deploy. Open the site → **Teams** → captains use **Add squad** (last 4 digits of listed mobile).
+
+**If GitHub pushes do not update the live site:** Vercel → your project → **Deployments** → ⋮ on latest → **Redeploy** (or connect **Git** in project Settings → Git to `deepkx/bluestar-cricket-tournament`, branch `main`, root `frontend`).
+
+Production URL (if using default naming): `https://bluestar-cricket-tournament.vercel.app`
 
 Admin can **edit/delete** confirmed teams, **download photos** (per team or all), toggle **registration open**, enable **2-player squads (testing)**, and export **CSV**.
 
