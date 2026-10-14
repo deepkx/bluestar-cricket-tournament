@@ -22,6 +22,7 @@ export function TeamDetailPage() {
   const [verifyOpen, setVerifyOpen] = useState(false);
   const [rosterEdit, setRosterEdit] = useState(false);
   const [minSquad, setMinSquad] = useState(11);
+  const [captainRosterOpen, setCaptainRosterOpen] = useState(true);
 
   const squadProgress: SquadProgress | undefined = detail
     ? {
@@ -81,7 +82,10 @@ export function TeamDetailPage() {
 
   useEffect(() => {
     getCurrentTournament()
-      .then((t) => setMinSquad(t.minSquadSize))
+      .then((t) => {
+        setMinSquad(t.minSquadSize);
+        setCaptainRosterOpen(t.captainRosterOpen);
+      })
       .catch(() => {});
   }, []);
 
@@ -98,6 +102,10 @@ export function TeamDetailPage() {
   const logo = mediaUrl(detail?.logoUrl);
 
   const openCaptainFlow = () => {
+    if (!captainRosterOpen) {
+      setSetupWarning('Squad uploads are closed for this tournament. Contact the committee if you need changes.');
+      return;
+    }
     if (!hasTeamId) {
       setSetupWarning(
         'Squad upload needs the team in Supabase first. Run supabase/migrations/006_captain_roster.sql in the Supabase SQL editor, then refresh.',
@@ -151,7 +159,7 @@ export function TeamDetailPage() {
               <SquadProgressBadge progress={squadProgress} minSquad={minSquad} variant="panel" />
             ) : null}
 
-            {canCaptainAdd && !rosterEdit ? (
+            {canCaptainAdd && !rosterEdit && captainRosterOpen ? (
               <button
                 type="button"
                 className="squad-add-link squad-add-link--hero mt-8 w-full sm:w-auto"
@@ -159,6 +167,11 @@ export function TeamDetailPage() {
               >
                 {detail.players.length > 0 ? 'Edit squad' : 'Add squad'}
               </button>
+            ) : null}
+            {canCaptainAdd && !captainRosterOpen && !rosterEdit ? (
+              <p className="mt-8 text-center text-sm text-paper/55">
+                Captain squad uploads are closed. The committee can still edit squads in admin.
+              </p>
             ) : null}
 
             {!isHost && !rosterEdit ? (
@@ -168,27 +181,27 @@ export function TeamDetailPage() {
             ) : null}
 
             {detail.players.length > 0 && !rosterEdit ? (
-              <ul className="mt-8 grid gap-4 sm:grid-cols-2">
+              <ul className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 {detail.players.map((p) => {
                   const photo = mediaUrl(p.photoUrl);
                   return (
                     <li
                       key={p.id}
-                      className="flex items-center gap-3 border border-paper/12 bg-ink-deep/40 px-3 py-3"
+                      className="overflow-hidden border border-paper/12 bg-ink-deep/40"
                     >
-                      <div className="h-14 w-14 shrink-0 overflow-hidden border border-paper/15 bg-turf/20">
+                      <div className="aspect-[4/5] w-full overflow-hidden border-b border-paper/10 bg-turf/20">
                         {photo ? (
                           <img src={photo} alt="" className="h-full w-full object-cover" />
                         ) : (
-                          <span className="flex h-full items-center justify-center text-[10px] text-paper/35">
-                            Photo
+                          <span className="flex h-full min-h-[12rem] items-center justify-center text-sm text-paper/35">
+                            No photo
                           </span>
                         )}
                       </div>
-                      <div>
+                      <div className="px-4 py-3">
                         <p className="font-medium text-paper">{p.fullName}</p>
                         {p.captain ? (
-                          <p className="text-xs uppercase tracking-widest text-floodlight-dim">Captain</p>
+                          <p className="mt-1 text-xs uppercase tracking-widest text-floodlight-dim">Captain</p>
                         ) : null}
                       </div>
                     </li>

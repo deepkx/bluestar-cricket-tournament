@@ -6,6 +6,7 @@ export type SiteConfigRow = {
   min_squad_size: number;
   max_squad_size: number;
   registration_open: boolean;
+  captain_roster_open: boolean;
   tournament_starts_at: string | null;
   fixture_announcement_at: string | null;
   pools_reveal_at: string | null;

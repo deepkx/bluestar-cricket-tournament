@@ -11,6 +11,9 @@ import { TeamDetailPage } from './pages/TeamDetailPage';
 import { TeamsPage } from './pages/TeamsPage';
 import { AdminTeamsPage } from './pages/admin/AdminTeamsPage';
 import { AdminPoolsPage } from './pages/admin/AdminPoolsPage';
+import { AdminSettingsPage } from './pages/admin/AdminSettingsPage';
+import { AdminDuplicatesPage } from './pages/admin/AdminDuplicatesPage';
+import { AdminMatchResultsPage } from './pages/admin/AdminMatchResultsPage';
 
 function AppRoutes() {
   const location = useLocation();
@@ -45,10 +48,12 @@ function AppRoutes() {
         </Route>
         <Route path="admin" element={<Navigate to="/admin/teams" replace />} />
         <Route path="admin/login" element={<Navigate to="/admin/teams" replace />} />
-        <Route path="admin/settings" element={<Navigate to="/admin/teams" replace />} />
         <Route path="admin/registrations" element={<Navigate to="/admin/teams" replace />} />
         <Route path="admin/teams" element={<AdminTeamsPage />} />
+        <Route path="admin/results" element={<AdminMatchResultsPage />} />
         <Route path="admin/pools" element={<AdminPoolsPage />} />
+        <Route path="admin/settings" element={<AdminSettingsPage />} />
+        <Route path="admin/duplicates" element={<AdminDuplicatesPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <AnimatePresence>

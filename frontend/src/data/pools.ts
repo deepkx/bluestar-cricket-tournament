@@ -24,6 +24,8 @@ export type FixtureRow = {
   teamBId: string | null;
   teamAName: string | null;
   teamBName: string | null;
+  winnerTeamId: string | null;
+  winnerTeamName: string | null;
   scheduledAt: string | null;
   venue: string | null;
 };
@@ -103,7 +105,7 @@ export async function adminLoadFixtures(): Promise<FixtureRow[]> {
   const sb = requireSupabase();
   const { data, error } = await sb
     .from('tournament_fixtures')
-    .select('id, pool_code, match_order, label, team_a_id, team_b_id, scheduled_at, venue')
+    .select('id, pool_code, match_order, label, team_a_id, team_b_id, winner_team_id, scheduled_at, venue')
     .order('match_order', { ascending: true })
     .order('pool_code', { ascending: true });
   if (error) throw error;
@@ -118,9 +120,40 @@ export async function adminLoadFixtures(): Promise<FixtureRow[]> {
     teamBId: r.team_b_id as string | null,
     teamAName: r.team_a_id ? (byId.get(r.team_a_id as string) ?? null) : null,
     teamBName: r.team_b_id ? (byId.get(r.team_b_id as string) ?? null) : null,
+    winnerTeamId: (r.winner_team_id as string | null) ?? null,
+    winnerTeamName: r.winner_team_id ? (byId.get(r.winner_team_id as string) ?? null) : null,
     scheduledAt: r.scheduled_at as string | null,
     venue: (r.venue as string | null) ?? null,
   }));
+}
+
+export async function adminSetFixtureWinner(fixtureId: string, winnerTeamId: string | null) {
+  const sb = requireSupabase();
+  const { error: rpcError } = await sb.rpc('set_fixture_winner', {
+    p_fixture_id: fixtureId,
+    p_winner_team_id: winnerTeamId,
+  });
+  if (!rpcError) return;
+
+  const msg = rpcError.message ?? '';
+  const rpcMissing =
+    rpcError.code === '42883' ||
+    msg.includes('set_fixture_winner') ||
+    msg.includes('Could not find the function');
+
+  if (rpcMissing) {
+    const { error } = await sb
+      .from('tournament_fixtures')
+      .update({ winner_team_id: winnerTeamId })
+      .eq('id', fixtureId);
+    if (error) throw error;
+    return;
+  }
+
+  if (msg.includes('winner_team_id') || msg.includes('schema cache')) {
+    throw new Error('Run Supabase migrations 017 and 018 (fixture winners + set_fixture_winner).');
+  }
+  throw rpcError;
 }
 
 export async function adminSaveFixtures(fixtures: FixtureRow[]) {
@@ -141,6 +174,7 @@ export async function adminSaveFixtures(fixtures: FixtureRow[]) {
     label: f.label,
     team_a_id: f.teamAId,
     team_b_id: f.teamBId,
+    winner_team_id: f.winnerTeamId,
     scheduled_at: f.scheduledAt,
     venue: f.venue,
   }));
@@ -167,6 +201,8 @@ export function buildDefaultPoolFixtures(boards: PoolBoard[]): Omit<FixtureRow, 
         teamBId: b.teamId,
         teamAName: a.teamName,
         teamBName: b.teamName,
+        winnerTeamId: null,
+        winnerTeamName: null,
         scheduledAt: null,
         venue: null,
       });
@@ -208,8 +244,12 @@ export async function fetchPublicFixtures(): Promise<FixtureRow[]> {
     poolCode: PoolCode | null;
     matchOrder: number;
     label: string | null;
+    teamAId: string | null;
+    teamBId: string | null;
     teamAName: string | null;
     teamBName: string | null;
+    winnerTeamId: string | null;
+    winnerTeamName: string | null;
     scheduledAt: string | null;
     venue: string | null;
   }[];
@@ -219,10 +259,12 @@ export async function fetchPublicFixtures(): Promise<FixtureRow[]> {
     poolCode: f.poolCode,
     matchOrder: f.matchOrder,
     label: f.label,
-    teamAId: null,
-    teamBId: null,
+    teamAId: f.teamAId ?? null,
+    teamBId: f.teamBId ?? null,
     teamAName: f.teamAName,
     teamBName: f.teamBName,
+    winnerTeamId: f.winnerTeamId ?? null,
+    winnerTeamName: f.winnerTeamName ?? null,
     scheduledAt: f.scheduledAt,
     venue: f.venue,
   }));

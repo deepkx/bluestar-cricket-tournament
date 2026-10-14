@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { AdminShell } from '../../components/admin/AdminShell';
 import { PlayerPhotoField } from '../../components/register/PlayerPhotoField';
-import { HOME_EVENT } from '../../content/homeEvent';
-import { datetimeLocalToIso, isoToDatetimeLocal } from '../../utils/datetimeLocal';
 import {
   adminAddConfirmedTeam,
   adminDeleteTeamFromBoard,
@@ -17,7 +16,7 @@ import {
   exportRegistrationsCsv,
   type AdminTeamSummary,
 } from '../../data/teams';
-import { fetchSiteConfig, updateSiteConfig } from '../../data/tournament';
+import { fetchSiteConfig } from '../../data/tournament';
 import { signOutAdmin } from '../../data/auth';
 import type { TeamPublic } from '../../types/api';
 import { downloadAllTeamsPhotosZip, downloadTeamPhotosZip } from '../../utils/downloadTeamPhotos';
@@ -50,12 +49,6 @@ type EditState = {
 
 export function AdminTeamsPage() {
   const [maxTeams, setMaxTeams] = useState(32);
-  const [registrationOpen, setRegistrationOpen] = useState(true);
-  const [testMinSquad, setTestMinSquad] = useState(false);
-  const [tournamentStartLocal, setTournamentStartLocal] = useState('');
-  const [poolsRevealLocal, setPoolsRevealLocal] = useState('');
-  const [fixturesRevealLocal, setFixturesRevealLocal] = useState('');
-  const [siteSaving, setSiteSaving] = useState(false);
   const [teams, setTeams] = useState<TeamPublic[]>([]);
   const [pending, setPending] = useState<AdminTeamSummary[]>([]);
   const [edit, setEdit] = useState<EditState | null>(null);
@@ -71,7 +64,6 @@ export function AdminTeamsPage() {
   const [successMsg, setSuccessMsg] = useState('');
   const [bulkDownloading, setBulkDownloading] = useState(false);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
-
   const load = async () => {
     try {
       const [cfg, teamList, pendingList] = await Promise.all([
@@ -80,15 +72,6 @@ export function AdminTeamsPage() {
         listPendingTeamsAdmin(),
       ]);
       setMaxTeams(cfg.max_teams);
-      setRegistrationOpen(cfg.registration_open);
-      setTestMinSquad(cfg.min_squad_size <= 2);
-      setTournamentStartLocal(isoToDatetimeLocal(cfg.tournament_starts_at));
-      setPoolsRevealLocal(
-        isoToDatetimeLocal(cfg.pools_reveal_at ?? cfg.fixture_announcement_at),
-      );
-      setFixturesRevealLocal(
-        isoToDatetimeLocal(cfg.fixtures_reveal_at ?? cfg.fixture_announcement_at),
-      );
       setTeams(teamList);
       setPending(pendingList);
     } catch (err) {
@@ -101,26 +84,6 @@ export function AdminTeamsPage() {
   }, []);
 
   const rows = useMemo(() => buildTeamSlotRows(maxTeams, teams), [maxTeams, teams]);
-
-  const saveSiteToggles = async () => {
-    setSiteSaving(true);
-    setError('');
-    try {
-      await updateSiteConfig({
-        registration_open: registrationOpen,
-        max_teams: maxTeams,
-        min_squad_size: testMinSquad ? 2 : 11,
-        tournament_starts_at: datetimeLocalToIso(tournamentStartLocal),
-        pools_reveal_at: datetimeLocalToIso(poolsRevealLocal),
-        fixtures_reveal_at: datetimeLocalToIso(fixturesRevealLocal),
-      });
-      setSuccessMsg('Site settings saved.');
-    } catch (err) {
-      setError(apiErrorMessage(err, 'Could not save site settings'));
-    } finally {
-      setSiteSaving(false);
-    }
-  };
 
   const openEdit = async (registrationId: string) => {
     if (!registrationId) {
@@ -380,83 +343,30 @@ export function AdminTeamsPage() {
 
   return (
     <AdminShell title="Team board">
-      <p className="mb-6 text-sm text-paper/60">
-        Edit any team squad (names, photos, add or remove players). Host teams use the same editor — open{' '}
-        <strong className="text-paper/80">Manage</strong> on Bluestar / Bluestar B.
+      <p className="mb-4 text-sm text-paper/60">
+        Edit squads via <strong className="text-paper/80">Manage</strong>. Site timings and upload locks:{' '}
+        <Link to="/admin/settings" className="text-floodlight-bright underline">
+          Settings
+        </Link>
+        . Duplicate names:{' '}
+        <Link to="/admin/duplicates" className="text-floodlight-bright underline">
+          Duplicates
+        </Link>
+        .
       </p>
 
-      <div className="register-panel mb-8 space-y-4 px-5 py-5">
-        <p className="hud-label text-floodlight-dim">Site</p>
-        <label className="flex items-center gap-2 text-sm text-paper/75">
-          <input
-            type="checkbox"
-            checked={registrationOpen}
-            onChange={(e) => setRegistrationOpen(e.target.checked)}
-          />
-          Registration open
-        </label>
-        <label className="flex items-center gap-2 text-sm text-paper/75">
-          <input type="checkbox" checked={testMinSquad} onChange={(e) => setTestMinSquad(e.target.checked)} />
-          2-player squads (testing) — captain + 1 player
-        </label>
-        <label className="block max-w-xs">
-          <span className="form-label">Max teams</span>
-          <input
-            type="number"
-            className="form-field"
-            min={2}
-            max={64}
-            value={maxTeams}
-            onChange={(e) => setMaxTeams(Number(e.target.value))}
-          />
-        </label>
-        <p className="hud-label pt-2 text-floodlight-dim">Countdowns</p>
-        <p className="text-xs text-paper/50">
-          Times use your device timezone. Leave blank to use site defaults ({HOME_EVENT.dateRange}).
-        </p>
-        <label className="block max-w-md">
-          <span className="form-label">Home — tournament starts (first ball)</span>
-          <input
-            type="datetime-local"
-            className="form-field"
-            value={tournamentStartLocal}
-            onChange={(e) => setTournamentStartLocal(e.target.value)}
-          />
-        </label>
-        <label className="block max-w-md">
-          <span className="form-label">Pools page — countdown ends at</span>
-          <input
-            type="datetime-local"
-            className="form-field"
-            value={poolsRevealLocal}
-            onChange={(e) => setPoolsRevealLocal(e.target.value)}
-          />
-        </label>
-        <label className="block max-w-md">
-          <span className="form-label">Fixtures page — countdown ends at</span>
-          <input
-            type="datetime-local"
-            className="form-field"
-            value={fixturesRevealLocal}
-            onChange={(e) => setFixturesRevealLocal(e.target.value)}
-          />
-        </label>
-        <div className="flex flex-wrap gap-3">
-          <button type="button" className="btn-outline text-sm" disabled={siteSaving} onClick={() => void saveSiteToggles()}>
-            {siteSaving ? 'Saving…' : 'Save site settings'}
-          </button>
-          <button type="button" className="btn-outline text-sm" onClick={() => void exportCsv()}>
-            Download CSV
-          </button>
-          <button
-            type="button"
-            className="btn-outline text-sm"
-            disabled={bulkDownloading || teams.length === 0}
-            onClick={() => void downloadAll()}
-          >
-            {bulkDownloading ? 'Zipping…' : 'Download all team photos'}
-          </button>
-        </div>
+      <div className="mb-8 flex flex-wrap gap-2">
+        <button type="button" className="btn-outline text-sm" onClick={() => void exportCsv()}>
+          Download CSV
+        </button>
+        <button
+          type="button"
+          className="btn-outline text-sm"
+          disabled={bulkDownloading || teams.length === 0}
+          onClick={() => void downloadAll()}
+        >
+          {bulkDownloading ? 'Zipping…' : 'All team photos zip'}
+        </button>
       </div>
 
       {pending.length > 0 ? (
@@ -497,8 +407,8 @@ export function AdminTeamsPage() {
             <input className="form-field" value={newCaptain} onChange={(e) => setNewCaptain(e.target.value)} />
           </label>
         </div>
-        <PlayerPhotoField label="Team logo (optional)" file={newTeamLogo} onChange={setNewTeamLogo} />
-        <PlayerPhotoField label="Captain photo (optional)" file={newCaptainPhoto} onChange={setNewCaptainPhoto} />
+        <PlayerPhotoField previewSize="large" label="Team logo (optional)" file={newTeamLogo} onChange={setNewTeamLogo} />
+        <PlayerPhotoField previewSize="large" label="Captain photo (optional)" file={newCaptainPhoto} onChange={setNewCaptainPhoto} />
         <button type="submit" className="btn-primary text-sm" disabled={adding}>
           {adding ? 'Adding…' : 'Add team to board'}
         </button>
@@ -622,6 +532,7 @@ export function AdminTeamsPage() {
               </div>
               <div className="mt-6">
                 <PlayerPhotoField
+                  previewSize="large"
                   label="Team logo"
                   file={edit.newTeamLogo}
                   existingUrl={edit.logoRemoved ? null : mediaUrl(edit.teamLogoUrl)}
@@ -685,6 +596,7 @@ export function AdminTeamsPage() {
                     </div>
                     <div className="mt-4">
                       <PlayerPhotoField
+                        previewSize="large"
                         label="Player photo"
                         file={p.newPhoto}
                         existingUrl={p.photoRemoved ? null : mediaUrl(p.photoUrl)}

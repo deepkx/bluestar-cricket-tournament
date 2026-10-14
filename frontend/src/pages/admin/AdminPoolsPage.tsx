@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { AdminPublishBar } from '../../components/admin/AdminPublishBar';
 import { AdminShell } from '../../components/admin/AdminShell';
 import { useSiteConfigPoll } from '../../hooks/useSiteConfigPoll';
@@ -125,6 +126,8 @@ export function AdminPoolsPage() {
         teamBId: null,
         teamAName: null,
         teamBName: null,
+        winnerTeamId: null,
+        winnerTeamName: null,
         scheduledAt: null,
         venue: null,
       },
@@ -141,6 +144,11 @@ export function AdminPoolsPage() {
         }
         if (patch.teamBId !== undefined) {
           next.teamBName = patch.teamBId ? (teams.find((t) => t.id === patch.teamBId)?.name ?? null) : null;
+        }
+        if (patch.winnerTeamId !== undefined) {
+          next.winnerTeamName = patch.winnerTeamId
+            ? (teams.find((t) => t.id === patch.winnerTeamId)?.name ?? null)
+            : null;
         }
         return next;
       }),
@@ -231,7 +239,12 @@ export function AdminPoolsPage() {
               </div>
             </div>
             <p className="mt-2 text-xs text-paper/45">
-              “Generate from pools” creates 1v2, 3v4, … within each pool. Edit times and teams, then save.
+              “Generate from pools” creates 1v2, 3v4, … within each pool. Edit times and teams, then save. Record winners
+              on{' '}
+              <Link to="/admin/results" className="text-floodlight-bright underline">
+                Match results
+              </Link>
+              .
             </p>
             {fixtures.length === 0 ? (
               <p className="mt-6 text-sm text-paper/45">No fixtures yet.</p>

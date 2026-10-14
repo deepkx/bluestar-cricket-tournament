@@ -47,7 +47,7 @@ export const TOURNAMENT_ROSTER_TEAMS: RosterTeam[] = [
   { sortOrder: 37, teamName: 'Game Changer', captainPhoneDigits: digits('6369144843') },
   { sortOrder: 38, teamName: 'Black Booster', captainPhoneDigits: digits('9626529034') },
   { sortOrder: 39, teamName: 'Neyveli Titans', captainPhoneDigits: digits('9360066103') },
-  { sortOrder: 40, teamName: 'Luminous Lions', captainPhoneDigits: digits('7538830821') },
+  { sortOrder: 40, teamName: 'Luminous Lions', captainPhoneDigits: digits('1234') },
 ];
 
 export const TOURNAMENT_MAX_TEAMS = 40;

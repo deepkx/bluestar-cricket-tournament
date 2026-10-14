@@ -6,9 +6,23 @@ type Props = {
   onChange: (f: File | null) => void;
   existingUrl?: string | null;
   onClearExisting?: () => void;
+  /** Larger preview for captain/admin squad uploads */
+  previewSize?: 'default' | 'large';
 };
 
-export function PlayerPhotoField({ label, file, onChange, existingUrl, onClearExisting }: Props) {
+const PREVIEW_BOX: Record<'default' | 'large', string> = {
+  default: 'h-28 w-28',
+  large: 'h-44 w-44 sm:h-52 sm:w-52',
+};
+
+export function PlayerPhotoField({
+  label,
+  file,
+  onChange,
+  existingUrl,
+  onClearExisting,
+  previewSize = 'default',
+}: Props) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [focus, setFocus] = useState({ x: 50, y: 50 });
   const dragRef = useRef<{ active: boolean; startX: number; startY: number; startFx: number; startFy: number } | null>(
@@ -61,7 +75,7 @@ export function PlayerPhotoField({ label, file, onChange, existingUrl, onClearEx
     <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
       <div className="flex flex-col gap-1">
         <div
-          className={`flex h-28 w-28 shrink-0 touch-none items-center justify-center overflow-hidden border border-paper/20 bg-ink-deep/60 ${
+          className={`flex ${PREVIEW_BOX[previewSize]} shrink-0 touch-none items-center justify-center overflow-hidden border border-paper/20 bg-ink-deep/60 ${
             file ? 'cursor-grab active:cursor-grabbing' : ''
           }`}
           onPointerDown={onPointerDown}
@@ -82,7 +96,9 @@ export function PlayerPhotoField({ label, file, onChange, existingUrl, onClearEx
           )}
         </div>
         {file ? (
-          <p className="max-w-[7rem] text-center text-[10px] leading-tight text-paper/45">
+          <p
+            className={`text-center text-[10px] leading-tight text-paper/45 ${previewSize === 'large' ? 'max-w-[13rem] sm:max-w-[15rem]' : 'max-w-[7rem]'}`}
+          >
             Drag photo to reposition before submit
           </p>
         ) : null}

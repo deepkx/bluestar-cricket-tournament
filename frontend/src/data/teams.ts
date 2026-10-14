@@ -26,6 +26,30 @@ export function teamRowToPublic(row: TeamRow): TeamPublic {
   };
 }
 
+export type PendingTeamPublic = {
+  teamName: string;
+  publicReference: string;
+  captainName: string;
+  createdAt: string;
+};
+
+/** Registrations awaiting admin approval (public read per pending RLS). */
+export async function listPendingTeamsPublic(): Promise<PendingTeamPublic[]> {
+  const sb = requireSupabase();
+  const { data, error } = await sb
+    .from('teams')
+    .select('team_name, public_reference, captain_name, created_at')
+    .eq('status', 'pending')
+    .order('created_at', { ascending: true });
+  if (error) throw error;
+  return (data ?? []).map((r) => ({
+    teamName: r.team_name as string,
+    publicReference: r.public_reference as string,
+    captainName: r.captain_name as string,
+    createdAt: r.created_at as string,
+  }));
+}
+
 export async function listConfirmedTeams(): Promise<TeamPublic[]> {
   const sb = requireSupabase();
   const { data, error } = await sb
@@ -79,6 +103,77 @@ export async function fetchSquadProgressByTeamId(): Promise<Map<string, SquadPro
     map.set(tid, entry);
   }
   return map;
+}
+
+function normalizePlayerName(s: string): string {
+  return s.trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+export type DuplicatePlayerEntry = {
+  playerId: string;
+  fullName: string;
+  teamId: string;
+  teamName: string;
+  photoUrl: string | null;
+  captain: boolean;
+};
+
+export type DuplicatePlayerNameGroup = {
+  normalizedName: string;
+  label: string;
+  entries: DuplicatePlayerEntry[];
+};
+
+/** Confirmed squads only — groups where the same player name appears more than once (any team). */
+export async function listDuplicatePlayerNamesAdmin(): Promise<DuplicatePlayerNameGroup[]> {
+  const sb = requireSupabase();
+  const { data, error } = await sb
+    .from('players')
+    .select('id, full_name, photo_path, is_captain, team_id, teams!inner(team_name, status)')
+    .eq('teams.status', 'confirmed');
+  if (error) throw error;
+
+  const byKey = new Map<string, DuplicatePlayerEntry[]>();
+  for (const raw of data ?? []) {
+    const row = raw as {
+      id: string;
+      full_name: string;
+      photo_path: string | null;
+      is_captain: boolean;
+      team_id: string;
+      teams: { team_name: string; status: TeamStatus } | { team_name: string; status: TeamStatus }[];
+    };
+    const teamRel = row.teams;
+    const teamMeta = Array.isArray(teamRel) ? teamRel[0] : teamRel;
+    if (!teamMeta || teamMeta.status !== 'confirmed') continue;
+
+    const fullName = (row.full_name ?? '').trim();
+    if (!fullName) continue;
+    const key = normalizePlayerName(fullName);
+    const list = byKey.get(key) ?? [];
+    list.push({
+      playerId: row.id,
+      fullName,
+      teamId: row.team_id,
+      teamName: teamMeta.team_name,
+      photoUrl: row.photo_path,
+      captain: row.is_captain,
+    });
+    byKey.set(key, list);
+  }
+
+  const groups: DuplicatePlayerNameGroup[] = [];
+  for (const [normalizedName, entries] of byKey) {
+    if (entries.length < 2) continue;
+    entries.sort((a, b) => a.teamName.localeCompare(b.teamName) || a.fullName.localeCompare(b.fullName));
+    groups.push({
+      normalizedName,
+      label: entries[0]?.fullName ?? normalizedName,
+      entries,
+    });
+  }
+  groups.sort((a, b) => a.label.localeCompare(b.label));
+  return groups;
 }
 
 export async function getTeamByName(teamName: string): Promise<TeamDetail | null> {

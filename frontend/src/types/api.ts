@@ -21,6 +21,7 @@ export interface TournamentPublic {
   /** True when backend REGISTRATION_TEST_MIN_SQUAD is enabled (min squad exposed as 2). */
   registrationTestMode: boolean;
   registrationOpen: boolean;
+  captainRosterOpen: boolean;
   registrationOpensAt: string | null;
   registrationClosesAt: string | null;
   fixtureAnnouncementAt: string | null;

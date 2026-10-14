@@ -1,5 +1,6 @@
 import { HOME_EVENT } from '../../content/homeEvent';
 import { useCountdown } from '../../hooks/useCountdown';
+import { countdownTotalSeconds } from '../../utils/fixtureResults';
 import { CountdownDisplay } from './CountdownDisplay';
 
 type Props = {
@@ -9,6 +10,8 @@ type Props = {
   subline?: string;
   /** When false, do not fall back to marketing default date (admin must start countdown). */
   useDefaultWhenUnset?: boolean;
+  /** Enlarge + gold seconds in final stretch (used with FixturesCountdownFinale). */
+  secondsEmphasis?: boolean;
 };
 
 export function RevealCountdownBlock({
@@ -17,17 +20,20 @@ export function RevealCountdownBlock({
   headline,
   subline,
   useDefaultWhenUnset = false,
+  secondsEmphasis = false,
 }: Props) {
   const resolved =
     targetIso ?? (useDefaultWhenUnset ? HOME_EVENT.poolsFixturesRevealIso : null);
   const cd = useCountdown(resolved ?? undefined, timezone);
   if (!resolved || cd?.expired) return null;
 
+  const finale = secondsEmphasis && cd && countdownTotalSeconds(cd) <= 10 && countdownTotalSeconds(cd) > 0;
+
   return (
-    <div className="rounded-sm border border-paper/15 bg-turf/40 px-6 py-10 sm:px-10 sm:py-12">
+    <>
       <p className="hud-label text-center">{headline}</p>
       <p className="mt-2 text-center text-sm text-paper/60">
-        {subline ?? HOME_EVENT.poolsFixturesRevealLabel}
+        {finale ? 'Knockout brackets and match times are almost live.' : (subline ?? HOME_EVENT.poolsFixturesRevealLabel)}
       </p>
       <div className="mt-8 flex justify-center">
         <CountdownDisplay
@@ -36,12 +42,13 @@ export function RevealCountdownBlock({
           large
           variant="hud"
           align="center"
-          hudLabel={`Reveals in · ${timezone.replace(/_/g, ' ')}`}
+          hudLabel={finale ? 'Going live' : `Reveals in · ${timezone.replace(/_/g, ' ')}`}
           showFixturesLinkWhenExpired={false}
           expiredMessage="Published"
-          className="max-w-full items-center"
+          className={`max-w-full items-center ${finale ? '[&_.font-display]:text-floodlight-bright' : ''}`}
+          finalePulse={Boolean(finale)}
         />
       </div>
-    </div>
+    </>
   );
 }

@@ -23,6 +23,19 @@ export function isSquadPhotoComplete(progress: SquadProgress | undefined, minSqu
   return progress.photoCount >= target && progress.playerCount >= minSquad;
 }
 
+export type SquadCompletionStatus = 'complete' | 'in_progress' | 'not_started';
+
+/** Confirmed team squad state for public team board grouping. */
+export function squadCompletionStatus(
+  progress: SquadProgress | undefined,
+  minSquad: number,
+  hasTeamInDb: boolean,
+): SquadCompletionStatus {
+  if (isSquadPhotoComplete(progress, minSquad)) return 'complete';
+  if (!hasTeamInDb || !progress || progress.playerCount === 0) return 'not_started';
+  return 'in_progress';
+}
+
 export function countDraftNamed(players: CaptainPlayerDraft[]): number {
   return players.filter((p) => p.fullName.trim()).length;
 }

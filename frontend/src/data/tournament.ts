@@ -11,6 +11,7 @@ const DEFAULT_SITE: SiteConfigRow = {
   min_squad_size: 11,
   max_squad_size: 15,
   registration_open: true,
+  captain_roster_open: true,
   tournament_starts_at: null,
   fixture_announcement_at: null,
   pools_reveal_at: null,
@@ -58,6 +59,7 @@ export function mapSiteConfigToTournament(cfg: SiteConfigRow): TournamentPublic 
     maxSquadSize: cfg.max_squad_size,
     registrationTestMode,
     registrationOpen: cfg.registration_open,
+    captainRosterOpen: cfg.captain_roster_open ?? true,
     registrationOpensAt: null,
     registrationClosesAt: null,
     fixtureAnnouncementAt: cfg.fixture_announcement_at,
@@ -88,6 +90,7 @@ export async function updateSiteConfig(
     Pick<
       SiteConfigRow,
       | 'registration_open'
+      | 'captain_roster_open'
       | 'max_teams'
       | 'min_squad_size'
       | 'tournament_starts_at'

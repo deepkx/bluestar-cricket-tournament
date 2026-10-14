@@ -116,7 +116,7 @@ VALUES
   ('Game Changer', 'Captain', '6369144843', 37, 'confirmed', now()),
   ('Black Booster', 'Captain', '9626529034', 38, 'confirmed', now()),
   ('Neyveli Titans', 'Captain', '9360066103', 39, 'confirmed', now()),
-  ('Luminous Lions', 'Captain', '7538830821', 40, 'confirmed', now())
+  ('Luminous Lions', 'Captain', '1234', 40, 'confirmed', now())
 ON CONFLICT (normalized_name) DO UPDATE SET
   captain_phone_digits = excluded.captain_phone_digits,
   sort_order = excluded.sort_order,

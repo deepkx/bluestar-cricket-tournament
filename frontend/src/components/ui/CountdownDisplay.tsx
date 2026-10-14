@@ -14,6 +14,7 @@ type Props = {
   hudLabel?: string;
   expiredMessage?: string;
   showFixturesLinkWhenExpired?: boolean;
+  finalePulse?: boolean;
 };
 
 export function CountdownDisplay({
@@ -28,6 +29,7 @@ export function CountdownDisplay({
   hudLabel,
   expiredMessage = 'Underway',
   showFixturesLinkWhenExpired = true,
+  finalePulse = false,
 }: Props) {
   const cd = useCountdown(targetIso, timezone);
   const fg = dark ? 'text-ink' : 'text-paper';
@@ -97,15 +99,22 @@ export function CountdownDisplay({
             {i > 0 && (
               <span className={`mx-0.5 sm:mx-1 ${large ? colonLarge : 'text-xl opacity-30 sm:text-2xl'}`}>:</span>
             )}
-            <span className={`inline-flex items-baseline overflow-hidden ${digitSize}`}>
+            <span
+              className={`inline-flex items-baseline overflow-hidden ${digitSize} ${
+                finalePulse && p.key === 's' ? 'text-floodlight-bright' : ''
+              }`}
+            >
               {p.animate ? (
                 <AnimatePresence mode="popLayout" initial={false}>
                   <motion.span
                     key={p.v}
-                    initial={{ y: 12, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
+                    initial={{ y: 12, opacity: 0, scale: finalePulse ? 1.15 : 1 }}
+                    animate={{ y: 0, opacity: 1, scale: finalePulse && p.key === 's' ? [1.08, 1.2, 1.08] : 1 }}
                     exit={{ y: -12, opacity: 0 }}
-                    transition={{ duration: 0.2 }}
+                    transition={{
+                      duration: finalePulse && p.key === 's' ? 0.45 : 0.2,
+                      repeat: finalePulse && p.key === 's' ? Infinity : 0,
+                    }}
                   >
                     {String(p.v).padStart(2, '0')}
                   </motion.span>

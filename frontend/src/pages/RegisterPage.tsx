@@ -196,7 +196,7 @@ export function RegisterPage() {
                 disabled={submitting}
               />
             </label>
-            <PlayerPhotoField label="Team logo" file={teamLogo} onChange={setTeamLogo} />
+            <PlayerPhotoField previewSize="large" label="Team logo" file={teamLogo} onChange={setTeamLogo} />
             <label className="block">
               <span className="form-label">Number of players (including captain)</span>
               <select
@@ -225,7 +225,7 @@ export function RegisterPage() {
                 disabled={submitting}
               />
             </label>
-            <PlayerPhotoField label="Captain photo" file={captainPhoto} onChange={setCaptainPhoto} />
+            <PlayerPhotoField previewSize="large" label="Captain photo" file={captainPhoto} onChange={setCaptainPhoto} />
           </div>
 
           {otherPlayers.length > 0 ? (
@@ -246,6 +246,7 @@ export function RegisterPage() {
                     </label>
                     <div className="mt-4">
                       <PlayerPhotoField
+                        previewSize="large"
                         label="Player photo"
                         file={p.photo}
                         onChange={(f) => updateOther(i, { photo: f })}

@@ -6,7 +6,10 @@ import { AdminGateModal } from './AdminGateModal';
 
 const nav = [
   { to: '/admin/teams', label: 'Team board' },
+  { to: '/admin/results', label: 'Match results' },
   { to: '/admin/pools', label: 'Pools & fixtures' },
+  { to: '/admin/settings', label: 'Settings' },
+  { to: '/admin/duplicates', label: 'Duplicates' },
 ];
 
 type Props = { title: string; children: ReactNode };

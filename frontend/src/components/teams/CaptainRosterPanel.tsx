@@ -225,6 +225,7 @@ export function CaptainRosterPanel({ teamId, detail, onSaved, onCancel }: Props)
               </label>
               <PlayerPhotoField
                 label="Player photo"
+                previewSize="large"
                 file={p.photo}
                 existingUrl={mediaUrl(p.existingPhotoPath)}
                 onChange={(f) => updatePlayer(i, { photo: f })}

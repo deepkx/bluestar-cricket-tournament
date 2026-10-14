@@ -1,24 +1,28 @@
 import { useEffect, useMemo, useState } from 'react';
+import { motion } from 'framer-motion';
 import { PublicAdminPublishDock } from '../components/admin/PublicAdminPublishDock';
-import { PoolFixturesSection } from '../components/fixtures/PoolFixturesSection';
+import { FixturesGroupTable } from '../components/fixtures/FixturesGroupTable';
+import { FixturesGroupTabs } from '../components/fixtures/FixturesGroupTabs';
+import { PoolKnockoutBracket } from '../components/fixtures/PoolKnockoutBracket';
+import { buildPoolBracket } from '../utils/poolBracketModel';
 import { PublishCountdownScreen } from '../components/publish/PublishCountdownScreen';
-import { fetchPublicFixtures, type FixtureRow } from '../data/pools';
+import { fetchPublicFixtures, fetchPublicPools, type FixtureRow, type PoolBoard } from '../data/pools';
 import { listConfirmedTeams } from '../data/teams';
 import { PublicPageContent } from '../components/layout/PublicPageContent';
 import { PublicPageHero } from '../components/layout/PublicPageHero';
 import { useBoardDrawReveal } from '../hooks/useBoardDrawReveal';
+import { useFixturesPoolReveal } from '../hooks/useFixturesPoolReveal';
 import { useSiteConfigPoll } from '../hooks/useSiteConfigPoll';
 import { groupFixturesByPool } from '../utils/fixtureDisplay';
 
 const POOL_ORDER = ['A', 'B', 'C', 'D'] as const;
 
-/** Staggered pool reveal: ~2s per pool after countdown. */
-const REVEAL_DURATION_MS = POOL_ORDER.length * 2000 + 1200;
-
 export function FixturesPage() {
   const { tournament, refresh } = useSiteConfigPoll();
   const [matches, setMatches] = useState<FixtureRow[]>([]);
   const [decoyNames, setDecoyNames] = useState<string[]>([]);
+  const [activePool, setActivePool] = useState<string>('A');
+  const [poolBoards, setPoolBoards] = useState<PoolBoard[]>([]);
 
   const boardPhase = tournament?.fixturesBoardPhase ?? 'idle';
   const timezone = tournament?.timezone ?? 'Asia/Kolkata';
@@ -33,6 +37,11 @@ export function FixturesPage() {
     boardPhase,
   });
 
+  const animating = phase === 'animating' && matches.length > 0;
+  const revealed = phase === 'revealed';
+
+  const poolReveal = useFixturesPoolReveal(animating);
+
   useEffect(() => {
     void listConfirmedTeams().then((teams) => setDecoyNames(teams.map((x) => x.teamName)));
   }, []);
@@ -40,20 +49,63 @@ export function FixturesPage() {
   useEffect(() => {
     if (!contentUnlocked) {
       setMatches([]);
+      setPoolBoards([]);
       return;
     }
-    fetchPublicFixtures()
-      .then((rows) => setMatches(rows))
-      .catch(() => setMatches([]));
+    Promise.all([fetchPublicFixtures(), fetchPublicPools()])
+      .then(([rows, boards]) => {
+        setMatches(rows);
+        setPoolBoards(boards);
+      })
+      .catch(() => {
+        setMatches([]);
+        setPoolBoards([]);
+      });
   }, [contentUnlocked]);
 
   useEffect(() => {
-    if (phase !== 'animating' || matches.length === 0) return;
-    const t = window.setTimeout(() => completeAnimation(), REVEAL_DURATION_MS);
+    if (!animating || poolReveal.reduceMotion) return;
+    setActivePool(poolReveal.activePool);
+  }, [animating, poolReveal.activePool, poolReveal.reduceMotion]);
+
+  useEffect(() => {
+    if (!animating || matches.length === 0) return;
+    if (poolReveal.reduceMotion) {
+      completeAnimation();
+      return;
+    }
+    if (!poolReveal.isLastPool) return;
+    const t = window.setTimeout(() => completeAnimation(), poolReveal.poolRevealMs);
     return () => window.clearTimeout(t);
-  }, [phase, matches.length, completeAnimation]);
+  }, [
+    animating,
+    matches.length,
+    completeAnimation,
+    poolReveal.isLastPool,
+    poolReveal.poolRevealMs,
+    poolReveal.reduceMotion,
+  ]);
 
   const byPool = useMemo(() => groupFixturesByPool(matches), [matches]);
+
+  const poolCounts = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const code of POOL_ORDER) {
+      m.set(code, (byPool.get(code) ?? []).length);
+    }
+    return m;
+  }, [byPool]);
+
+  const activeIndex = POOL_ORDER.indexOf(activePool as (typeof POOL_ORDER)[number]);
+  const sectionIndex = activeIndex >= 0 ? activeIndex : 0;
+  const activeFixtures = byPool.get(activePool) ?? [];
+  const activeBracket = useMemo(() => buildPoolBracket(activeFixtures), [activeFixtures]);
+  const activeSeeds = useMemo(() => {
+    const board = poolBoards.find((b) => b.poolCode === activePool);
+    return board?.slots ?? [];
+  }, [poolBoards, activePool]);
+
+  const revealLive = animating && !poolReveal.reduceMotion;
 
   if (!tournament) {
     return (
@@ -63,8 +115,6 @@ export function FixturesPage() {
 
   const adminBar = <PublicAdminPublishDock preset="fixtures" onUpdated={refresh} />;
   const showIdle = boardPhase === 'idle' && !contentUnlocked;
-  const animating = phase === 'animating' && matches.length > 0;
-  const revealed = phase === 'revealed';
 
   if (countdownLive) {
     return (
@@ -74,6 +124,7 @@ export function FixturesPage() {
         targetIso={revealIso}
         timezone={timezone}
         adminBar={adminBar}
+        fixturesFinale
       />
     );
   }
@@ -83,7 +134,7 @@ export function FixturesPage() {
       <PublicPageHero
         kicker="Schedule"
         title="Fixtures"
-        lead="Pool knockout brackets — Saturday pools A & C, Sunday pools B & D. 45 minutes per match."
+        lead="Pool knockout brackets with advancing arrows — plus match-time sheet below each pool."
       />
 
       <PublicPageContent width="2xl">
@@ -96,25 +147,52 @@ export function FixturesPage() {
         ) : null}
 
         {!showIdle && matches.length > 0 ? (
-          <div className="mt-10 space-y-10 sm:mt-12">
-            {animating ? (
-              <p className="hud-label text-center text-floodlight-bright">Live reveal — pool schedules…</p>
+          <div className="mt-10 sm:mt-12">
+            {revealLive ? (
+              <motion.p
+                className="hud-label mb-6 text-center text-floodlight-bright"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                key={poolReveal.activePool}
+              >
+                Live reveal — Pool {poolReveal.activePool} ({poolReveal.poolIndex + 1}/{poolReveal.poolCount})
+              </motion.p>
             ) : null}
-            {POOL_ORDER.map((code, sectionIndex) => {
-              const poolFixtures = byPool.get(code) ?? [];
-              if (poolFixtures.length === 0) return null;
-              return (
-                <PoolFixturesSection
-                  key={code}
-                  poolCode={code}
-                  fixtures={poolFixtures}
+            <FixturesGroupTabs
+              active={activePool}
+              onChange={setActivePool}
+              counts={poolCounts}
+              revealLocked={revealLive}
+              revealPoolIndex={poolReveal.poolIndex}
+            />
+            <div
+              className="mt-0"
+              role="tabpanel"
+              id={`fixtures-panel-${activePool}`}
+              aria-labelledby={`fixtures-tab-${activePool}`}
+            >
+              <PoolKnockoutBracket
+                poolCode={activePool}
+                model={activeBracket}
+                seeds={activeSeeds}
+                revealActive={revealLive}
+                revealTick={poolReveal.revealTick}
+                revealed={revealed || poolReveal.reduceMotion}
+              />
+              <div className="mt-8">
+                <p className="mb-3 px-1 text-xs uppercase tracking-widest text-paper/45">Match times</p>
+                <FixturesGroupTable
+                  poolCode={activePool}
+                  fixtures={activeFixtures}
+                  poolFixtures={activeFixtures}
                   animating={animating}
                   decoyNames={decoyNames}
                   sectionIndex={sectionIndex}
                   revealed={revealed}
+                  revealTick={poolReveal.revealTick}
                 />
-              );
-            })}
+              </div>
+            </div>
           </div>
         ) : null}
 
