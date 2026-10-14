@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { CaptainRosterPanel, CaptainVerifyDialog } from '../components/teams/CaptainRosterPanel';
+import { SquadProgressBadge } from '../components/teams/SquadProgressBadge';
 import { PublicPageContent } from '../components/layout/PublicPageContent';
 import { PublicPageHero } from '../components/layout/PublicPageHero';
 import { isFixedHostTeamName } from '../content/homeEvent';
 import { findRosterTeam } from '../content/tournamentTeams';
+import { getCurrentTournament } from '../data/tournament';
 import { getTeamByName, type TeamDetail } from '../data/teams';
+import type { SquadProgress } from '../utils/squadProgress';
 import { mediaUrl } from '../utils/mediaUrl';
 
 export function TeamDetailPage() {
@@ -18,6 +21,14 @@ export function TeamDetailPage() {
   const [loading, setLoading] = useState(true);
   const [verifyOpen, setVerifyOpen] = useState(false);
   const [rosterEdit, setRosterEdit] = useState(false);
+  const [minSquad, setMinSquad] = useState(11);
+
+  const squadProgress: SquadProgress | undefined = detail
+    ? {
+        playerCount: detail.players.length,
+        photoCount: detail.players.filter((p) => p.photoUrl).length,
+      }
+    : undefined;
 
   const load = useCallback(() => {
     if (!teamName) return;
@@ -67,6 +78,12 @@ export function TeamDetailPage() {
     setVerifyOpen(false);
     setRosterEdit(false);
   }, [load]);
+
+  useEffect(() => {
+    getCurrentTournament()
+      .then((t) => setMinSquad(t.minSquadSize))
+      .catch(() => {});
+  }, []);
 
   const isHost = detail ? isFixedHostTeamName(detail.teamName) : false;
   const canCaptainAdd = detail && !isHost;
@@ -130,13 +147,17 @@ export function TeamDetailPage() {
               </div>
             </div>
 
+            {canCaptainAdd && squadProgress && squadProgress.playerCount > 0 && !rosterEdit ? (
+              <SquadProgressBadge progress={squadProgress} minSquad={minSquad} variant="panel" />
+            ) : null}
+
             {canCaptainAdd && !rosterEdit ? (
               <button
                 type="button"
                 className="squad-add-link squad-add-link--hero mt-8 w-full sm:w-auto"
                 onClick={openCaptainFlow}
               >
-                {detail.players.length > 0 ? 'Update squad' : 'Add squad'}
+                {detail.players.length > 0 ? 'Edit squad' : 'Add squad'}
               </button>
             ) : null}
 
@@ -147,7 +168,7 @@ export function TeamDetailPage() {
             ) : null}
 
             {detail.players.length > 0 && !rosterEdit ? (
-              <ul className="mt-10 grid gap-4 sm:grid-cols-2">
+              <ul className="mt-8 grid gap-4 sm:grid-cols-2">
                 {detail.players.map((p) => {
                   const photo = mediaUrl(p.photoUrl);
                   return (

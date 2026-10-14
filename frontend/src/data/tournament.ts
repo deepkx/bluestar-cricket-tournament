@@ -9,7 +9,7 @@ const DEFAULT_SITE: SiteConfigRow = {
   id: 1,
   max_teams: 32,
   min_squad_size: 11,
-  max_squad_size: 15,
+  max_squad_size: 18,
   registration_open: true,
   tournament_starts_at: null,
   fixture_announcement_at: null,

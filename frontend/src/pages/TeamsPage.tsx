@@ -2,7 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { PublicAdminPublishDock } from '../components/admin/PublicAdminPublishDock';
 import { TeamsBoardReveal } from '../components/teams/TeamsBoardReveal';
-import { listConfirmedTeams } from '../data/teams';
+import { SquadProgressBadge } from '../components/teams/SquadProgressBadge';
+import { fetchSquadProgressByTeamId, listConfirmedTeams } from '../data/teams';
+import { formatSquadPhotoProgress, type SquadProgress } from '../utils/squadProgress';
 import { PublicPageContent } from '../components/layout/PublicPageContent';
 import { PublicPageHero } from '../components/layout/PublicPageHero';
 import { useSiteConfigPoll } from '../hooks/useSiteConfigPoll';
@@ -20,17 +22,23 @@ export function TeamsPage() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
   const [query, setQuery] = useState('');
+  const [squadProgress, setSquadProgress] = useState<Map<string, SquadProgress>>(new Map());
 
   const boardPhase = tournament?.teamsBoardPhase ?? 'visible';
+  const minSquad = tournament?.minSquadSize ?? 11;
 
   const loadTeams = useCallback(() => {
     setLoading(true);
     setErr('');
-    listConfirmedTeams()
-      .then((teamList) => setTeams(teamList))
+    Promise.all([listConfirmedTeams(), fetchSquadProgressByTeamId().catch(() => new Map())])
+      .then(([teamList, progress]) => {
+        setTeams(teamList);
+        setSquadProgress(progress);
+      })
       .catch(() => {
         setErr('Could not load live data from Supabase. Teams below are from the fixed tournament list.');
         setTeams([]);
+        setSquadProgress(new Map());
       })
       .finally(() => setLoading(false));
   }, []);
@@ -171,14 +179,24 @@ export function TeamsPage() {
                         )}
                       </div>
 
-                      <div className="flex justify-end sm:justify-center">
+                      <div className="flex flex-col items-end gap-1 sm:items-center">
                         {addSquad ? (
-                          <Link
-                            to={`/teams/${encodeURIComponent(row.teamName)}?captain=1`}
-                            className="squad-add-link"
-                          >
-                            Add squad
-                          </Link>
+                          <>
+                            {row.registrationId && formatSquadPhotoProgress(squadProgress.get(row.registrationId), minSquad) ? (
+                              <SquadProgressBadge
+                                progress={squadProgress.get(row.registrationId)}
+                                minSquad={minSquad}
+                              />
+                            ) : null}
+                            <Link
+                              to={`/teams/${encodeURIComponent(row.teamName)}?captain=1`}
+                              className="squad-add-link"
+                            >
+                              {row.registrationId && (squadProgress.get(row.registrationId)?.playerCount ?? 0) > 0
+                                ? 'Edit squad'
+                                : 'Add squad'}
+                            </Link>
+                          </>
                         ) : (
                           <span className="px-2 text-xs text-paper/25">—</span>
                         )}

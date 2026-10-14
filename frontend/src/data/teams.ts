@@ -1,4 +1,5 @@
 import { HOME_EVENT } from '../content/homeEvent';
+import type { SquadProgress } from '../utils/squadProgress';
 import { requireSupabase, supabaseErrorMessage } from '../lib/supabase';
 import type { TeamPublic, RegistrationStatus } from '../types/api';
 import type { PlayerRow, TeamRow, TeamStatus } from './dbTypes';
@@ -51,6 +52,34 @@ export type TeamDetail = {
   confirmedAt: string | null;
   players: { id: string; fullName: string; captain: boolean; photoUrl: string | null }[];
 };
+
+/** Player + photo counts per confirmed team (public read). */
+export async function fetchSquadProgressByTeamId(): Promise<Map<string, SquadProgress>> {
+  const sb = requireSupabase();
+  const { data: teams, error: tErr } = await sb.from('teams').select('id').eq('status', 'confirmed');
+  if (tErr) throw tErr;
+  const teamIds = (teams ?? []).map((t) => t.id as string);
+  const map = new Map<string, SquadProgress>();
+  if (teamIds.length === 0) return map;
+
+  const { data: players, error: pErr } = await sb
+    .from('players')
+    .select('team_id, photo_path')
+    .in('team_id', teamIds);
+  if (pErr) throw pErr;
+
+  for (const id of teamIds) {
+    map.set(id, { playerCount: 0, photoCount: 0 });
+  }
+  for (const row of players ?? []) {
+    const tid = row.team_id as string;
+    const entry = map.get(tid) ?? { playerCount: 0, photoCount: 0 };
+    entry.playerCount += 1;
+    if (row.photo_path) entry.photoCount += 1;
+    map.set(tid, entry);
+  }
+  return map;
+}
 
 export async function getTeamByName(teamName: string): Promise<TeamDetail | null> {
   const sb = requireSupabase();

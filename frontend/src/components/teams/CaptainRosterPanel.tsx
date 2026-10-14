@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { apiErrorMessage } from '../../utils/errors';
 import { PlayerPhotoField } from '../register/PlayerPhotoField';
 import {
@@ -9,6 +9,11 @@ import {
 import { getCurrentTournament } from '../../data/tournament';
 import type { TeamDetail } from '../../data/teams';
 import { mediaUrl } from '../../utils/mediaUrl';
+import {
+  countDraftNamed,
+  countDraftPhotos,
+  playerHasPhoto,
+} from '../../utils/squadProgress';
 
 type Props = {
   teamId: string;
@@ -30,8 +35,9 @@ function draftsFromDetail(detail: TeamDetail): CaptainPlayerDraft[] {
 }
 
 export function CaptainRosterPanel({ teamId, detail, onSaved, onCancel }: Props) {
+  const isEdit = detail.players.length > 0;
   const [minSquad, setMinSquad] = useState(11);
-  const [maxSquad, setMaxSquad] = useState(15);
+  const [maxSquad, setMaxSquad] = useState(18);
   const [teamLogo, setTeamLogo] = useState<File | null>(null);
   const [players, setPlayers] = useState<CaptainPlayerDraft[]>(() => draftsFromDetail(detail));
   const [removedIds, setRemovedIds] = useState<string[]>([]);
@@ -39,6 +45,9 @@ export function CaptainRosterPanel({ teamId, detail, onSaved, onCancel }: Props)
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const errorRef = useRef<HTMLParagraphElement>(null);
+
+  const namedCount = useMemo(() => countDraftNamed(players), [players]);
+  const photoCount = useMemo(() => countDraftPhotos(players), [players]);
 
   useEffect(() => {
     getCurrentTournament()
@@ -109,13 +118,39 @@ export function CaptainRosterPanel({ teamId, detail, onSaved, onCancel }: Props)
     }
   };
 
+  const photosComplete = photoCount >= squadSize && namedCount >= squadSize;
+
   return (
     <form className="mt-10 border-t border-paper/12 pt-8" onSubmit={handleSubmit}>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h3 className="hud-label text-floodlight-dim">Add squad photos</h3>
+        <h3 className="hud-label text-floodlight-dim">{isEdit ? 'Edit squad' : 'Add squad'}</h3>
         <button type="button" className="text-sm text-paper/55 underline" onClick={onCancel}>
           Cancel
         </button>
+      </div>
+
+      <div className="mt-4 rounded-md border border-paper/12 bg-turf/20 px-4 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-sm font-semibold text-paper">
+            Progress{' '}
+            <span className={`tabular-nums ${photosComplete ? 'text-floodlight-bright' : 'text-amber-200/90'}`}>
+              {photoCount}/{squadSize}
+            </span>{' '}
+            <span className="font-normal text-paper/50">photos</span>
+          </p>
+          <p className="text-xs tabular-nums text-paper/45">
+            Names {namedCount}/{squadSize}
+          </p>
+        </div>
+        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-ink-deep/60">
+          <div
+            className={`h-full transition-all ${photosComplete ? 'bg-floodlight' : 'bg-floodlight/70'}`}
+            style={{ width: `${Math.min(100, squadSize > 0 ? (photoCount / squadSize) * 100 : 0)}%` }}
+          />
+        </div>
+        {!photosComplete ? (
+          <p className="mt-2 text-xs text-paper/50">Each listed player needs a photo before you submit.</p>
+        ) : null}
       </div>
 
       {error ? (
@@ -152,33 +187,60 @@ export function CaptainRosterPanel({ teamId, detail, onSaved, onCancel }: Props)
       </div>
 
       <ul className="mt-8 space-y-6">
-        {players.map((p, i) => (
-          <li key={p.id ?? `new-${i}`} className="border border-paper/10 bg-ink-deep/30 px-4 py-4">
-            <p className="mb-3 text-xs font-medium uppercase tracking-widest text-paper/45">
-              {i === 0 ? 'Captain' : `Player ${i + 1}`}
-            </p>
-            <label className="mb-4 block">
-              <span className="form-label">Full name</span>
-              <input
-                type="text"
-                value={p.fullName}
-                onChange={(e) => updatePlayer(i, { fullName: e.target.value })}
-                className="form-field"
-                autoComplete="name"
+        {players.map((p, i) => {
+          const hasPhoto = playerHasPhoto(p);
+          const hasName = Boolean(p.fullName.trim());
+          return (
+            <li
+              key={p.id ?? `new-${i}`}
+              className={`border px-4 py-4 ${
+                hasName && !hasPhoto
+                  ? 'border-amber-500/35 bg-amber-500/[0.06]'
+                  : 'border-paper/10 bg-ink-deep/30'
+              }`}
+            >
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <p className="text-xs font-medium uppercase tracking-widest text-paper/45">
+                  {i === 0 ? 'Captain' : `Player ${i + 1}`}
+                </p>
+                {hasName ? (
+                  <span
+                    className={`text-[10px] font-semibold uppercase tracking-wider ${
+                      hasPhoto ? 'text-floodlight-dim' : 'text-amber-200/90'
+                    }`}
+                  >
+                    {hasPhoto ? 'Photo ✓' : 'Photo needed'}
+                  </span>
+                ) : null}
+              </div>
+              <label className="mb-4 block">
+                <span className="form-label">Full name</span>
+                <input
+                  type="text"
+                  value={p.fullName}
+                  onChange={(e) => updatePlayer(i, { fullName: e.target.value })}
+                  className="form-field"
+                  autoComplete="name"
+                />
+              </label>
+              <PlayerPhotoField
+                label="Player photo"
+                file={p.photo}
+                existingUrl={mediaUrl(p.existingPhotoPath)}
+                onChange={(f) => updatePlayer(i, { photo: f })}
+                onClearExisting={
+                  p.existingPhotoPath
+                    ? () => updatePlayer(i, { existingPhotoPath: null, photo: null })
+                    : undefined
+                }
               />
-            </label>
-            <PlayerPhotoField
-              label="Player photo"
-              file={p.photo}
-              existingUrl={mediaUrl(p.existingPhotoPath)}
-              onChange={(f) => updatePlayer(i, { photo: f })}
-            />
-          </li>
-        ))}
+            </li>
+          );
+        })}
       </ul>
 
       <button type="submit" disabled={submitting} className="btn-primary mt-8 w-full sm:w-auto">
-        {submitting ? 'Saving…' : 'Submit squad'}
+        {submitting ? 'Saving…' : isEdit ? 'Save squad changes' : 'Submit squad'}
       </button>
     </form>
   );
