@@ -38,7 +38,7 @@ export function RegisterPage() {
   const errorBannerRef = useRef<HTMLParagraphElement>(null);
 
   const minSquad = tournament?.minSquadSize ?? 11;
-  const maxSquad = tournament?.maxSquadSize ?? 18;
+  const maxSquad = tournament?.maxSquadSize ?? 15;
 
   useEffect(() => {
     getCurrentTournament()

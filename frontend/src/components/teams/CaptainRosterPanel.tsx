@@ -37,7 +37,7 @@ function draftsFromDetail(detail: TeamDetail): CaptainPlayerDraft[] {
 export function CaptainRosterPanel({ teamId, detail, onSaved, onCancel }: Props) {
   const isEdit = detail.players.length > 0;
   const [minSquad, setMinSquad] = useState(11);
-  const [maxSquad, setMaxSquad] = useState(18);
+  const [maxSquad, setMaxSquad] = useState(15);
   const [teamLogo, setTeamLogo] = useState<File | null>(null);
   const [players, setPlayers] = useState<CaptainPlayerDraft[]>(() => draftsFromDetail(detail));
   const [removedIds, setRemovedIds] = useState<string[]>([]);
