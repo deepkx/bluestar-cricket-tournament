@@ -50,14 +50,14 @@ export function buildBracketLayout(): {
   y += hR1 + r1Gap;
   const r1m4 = y;
 
-  /** Upper path: R2-M2 sits high; R3-M1 lower (not stacked with R2). */
-  const r2m2 = r1m1 + Math.round((hR1 + r1Gap) * 0.35);
+  /** Upper path: R2-M1 (slot 1 vs W R1-M1, earlier time) · R3-M1 (W R1-M2 vs W R2-M1). */
+  const r2m1 = r1m1 + Math.round((hR1 + r1Gap) * 0.35);
   const r3Gap = 36;
-  const r3m1 = r2m2 + hR2 + r3Gap;
+  const r3m1 = r2m1 + hR2 + r3Gap;
 
-  /** Lower path: R2-M1 pulled up toward R1-M3/M4; R3-M2 sits above R2-M1. */
-  const r2m1 = r1m3 + Math.round((hR1 + r1Gap) * 0.55);
-  const r3m2 = Math.max(r3m1 + hR3 + r3Gap, r2m1 - hR3 - r3Gap);
+  /** Lower path: R2-M2 (slot 10 vs W R1-M4) · R3-M2 (W R1-M3 vs W R2-M2). */
+  const r2m2 = r1m3 + Math.round((hR1 + r1Gap) * 0.55);
+  const r3m2 = Math.max(r3m1 + hR3 + r3Gap, r2m2 - hR3 - r3Gap);
 
   const finalY = Math.round((r3m1 + r3m2 + hR3) / 2 - hFinal / 2);
 

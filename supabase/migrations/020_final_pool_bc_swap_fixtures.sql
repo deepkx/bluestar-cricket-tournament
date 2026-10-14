@@ -1,12 +1,14 @@
 -- Final draw: Pool B = former C roster, Pool C = former B roster. Re-apply knockout pairings from slots.
--- Pattern (every pool): R1 2v3, 4v5, 6v7, 8v9 · R2-M1 slot10 vs W-R1-M4 · R2-M2 slot1 vs W-R1-M1
+-- Pattern: R1 2v3…8v9 · R2-M1 slot1 vs W-M1 · R2-M2 slot10 vs W-M4
+
+UPDATE tournament_pool_slots SET team_id = NULL WHERE pool_code IN ('B', 'C');
 
 UPDATE tournament_pool_slots AS s
 SET team_id = t.id
 FROM (VALUES
-  ('B', 1, 'Sharkzz'),
+  ('B', 1, 'Falcons'),
   ('B', 2, 'Pheonix'),
-  ('B', 3, 'Falcons'),
+  ('B', 3, 'Sharkzz'),
   ('B', 4, 'Spartanz'),
   ('B', 5, 'Independence'),
   ('B', 6, 'Bad Jokers'),
@@ -46,9 +48,9 @@ UPDATE tournament_fixtures SET team_a_id = _pool_slot_team('B', 6), team_b_id = 
 WHERE pool_code = 'B' AND label LIKE 'R1 · M3%';
 UPDATE tournament_fixtures SET team_a_id = _pool_slot_team('B', 8), team_b_id = _pool_slot_team('B', 9)
 WHERE pool_code = 'B' AND label LIKE 'R1 · M4%';
-UPDATE tournament_fixtures SET team_a_id = _pool_slot_team('B', 10), team_b_id = NULL
-WHERE pool_code = 'B' AND label LIKE 'R2 · M1%';
 UPDATE tournament_fixtures SET team_a_id = _pool_slot_team('B', 1), team_b_id = NULL
+WHERE pool_code = 'B' AND label LIKE 'R2 · M1%';
+UPDATE tournament_fixtures SET team_a_id = _pool_slot_team('B', 10), team_b_id = NULL
 WHERE pool_code = 'B' AND label LIKE 'R2 · M2%';
 
 -- Pool C — Saturday (match_order 21–29)
@@ -60,9 +62,9 @@ UPDATE tournament_fixtures SET team_a_id = _pool_slot_team('C', 6), team_b_id = 
 WHERE pool_code = 'C' AND label LIKE 'R1 · M3%';
 UPDATE tournament_fixtures SET team_a_id = _pool_slot_team('C', 8), team_b_id = _pool_slot_team('C', 9)
 WHERE pool_code = 'C' AND label LIKE 'R1 · M4%';
-UPDATE tournament_fixtures SET team_a_id = _pool_slot_team('C', 10), team_b_id = NULL
-WHERE pool_code = 'C' AND label LIKE 'R2 · M1%';
 UPDATE tournament_fixtures SET team_a_id = _pool_slot_team('C', 1), team_b_id = NULL
+WHERE pool_code = 'C' AND label LIKE 'R2 · M1%';
+UPDATE tournament_fixtures SET team_a_id = _pool_slot_team('C', 10), team_b_id = NULL
 WHERE pool_code = 'C' AND label LIKE 'R2 · M2%';
 
 -- Pool D — fix R1-M4 (Spartanz moved to B): slots 8 vs 9

@@ -37,7 +37,7 @@ function resolvedOrWinnerSide(fixtures: FixtureRow[], ref: string): BracketSide 
   return winnerSide(ref);
 }
 
-/** e.g. "R3 · M1 · Winner R1-M2 vs Winner R2-M2" → { top: R1-M2, bottom: R2-M2 } */
+/** e.g. "R3 · M1 · Winner R1-M2 vs Winner R2-M1" → { top: R1-M2, bottom: R2-M1 } */
 function parseWinnerPairLabel(label: string | null | undefined): { top: string; bottom: string } | null {
   if (!label) return null;
   const body = label.replace(/^R\d+ · M\d+ ·\s*/i, '');
@@ -74,7 +74,7 @@ function sidesFromFixture(
   }
 
   if (round === 2) {
-    const bottomRef = matchNum === 1 ? 'R1-M4' : 'R1-M1';
+    const bottomRef = matchNum === 1 ? 'R1-M1' : 'R1-M4';
     const winnerFromLabel = row.label?.match(/Winner (R\d+-M\d+)/i)?.[1];
     const ref = winnerFromLabel ?? bottomRef;
     const topName = row.teamAName ?? a;
@@ -97,8 +97,8 @@ function sidesFromFixture(
     const refs =
       parsed ??
       (matchNum === 1
-        ? { top: 'R1-M2', bottom: 'R2-M2' }
-        : { top: 'R1-M3', bottom: 'R2-M1' });
+        ? { top: 'R1-M2', bottom: 'R2-M1' }
+        : { top: 'R1-M3', bottom: 'R2-M2' });
     return {
       id: row.id,
       round: 3,

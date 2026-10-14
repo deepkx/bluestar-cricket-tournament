@@ -8,8 +8,8 @@ export const POOL_FIXTURE_META: Record<
   string,
   { dayLabel: string; startNote: string; matchMinutes: number }
 > = {
-  A: { dayLabel: 'Saturday', startNote: 'Starts 8:00 AM · Round 1 & 2', matchMinutes: 45 },
-  B: { dayLabel: 'Sunday', startNote: 'Starts 8:00 AM · Round 1 & 2', matchMinutes: 45 },
+  A: { dayLabel: 'Sunday', startNote: 'Starts 8:00 AM · Round 1 & 2', matchMinutes: 45 },
+  B: { dayLabel: 'Saturday', startNote: 'Starts 8:00 AM · Round 1 & 2', matchMinutes: 45 },
   C: { dayLabel: 'Saturday', startNote: 'Starts 12:30 PM · Round 1 & 2', matchMinutes: 45 },
   D: { dayLabel: 'Sunday', startNote: 'Starts 12:30 PM · Round 1 & 2', matchMinutes: 45 },
 };

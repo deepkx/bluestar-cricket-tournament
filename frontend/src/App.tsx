@@ -4,6 +4,7 @@ import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-route
 import { BluestarIntro } from './components/intro/BluestarIntro';
 import { Layout } from './components/layout/Layout';
 import { AboutPage } from './pages/AboutPage';
+import { DaywiseFixturesPage } from './pages/DaywiseFixturesPage';
 import { FixturesPage } from './pages/FixturesPage';
 import { PoolsPage } from './pages/PoolsPage';
 import { HomePage } from './pages/HomePage';
@@ -37,6 +38,7 @@ function AppRoutes() {
           <Route path="teams/:teamName" element={<TeamDetailPage />} />
           <Route path="pools" element={<PoolsPage />} />
           <Route path="fixtures" element={<FixturesPage />} />
+          <Route path="fixtures/daywise" element={<DaywiseFixturesPage />} />
           <Route path="register" element={<Navigate to="/teams" replace />} />
           <Route path="registration/success" element={<Navigate to="/teams" replace />} />
           <Route path="status" element={<Navigate to="/teams" replace />} />

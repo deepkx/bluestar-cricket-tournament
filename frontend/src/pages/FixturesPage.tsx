@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { CopyImageButton } from '../components/ui/CopyImageButton';
 import { motion } from 'framer-motion';
 import { PublicAdminPublishDock } from '../components/admin/PublicAdminPublishDock';
@@ -16,6 +17,7 @@ import { useBoardDrawReveal } from '../hooks/useBoardDrawReveal';
 import { useFixturesPoolReveal } from '../hooks/useFixturesPoolReveal';
 import { useSiteConfigPoll } from '../hooks/useSiteConfigPoll';
 import { groupFixturesByPool } from '../utils/fixtureDisplay';
+import { hydratePoolFixturesFromSlots } from '../utils/poolSlotFixtureTeams';
 import {
   SHOWDOWN_TAB,
   buildShowdownModel,
@@ -90,9 +92,14 @@ export function FixturesPage() {
     poolReveal.reduceMotion,
   ]);
 
-  const byPool = useMemo(() => groupFixturesByPool(matches), [matches]);
-  const showdownFixtures = useMemo(() => filterShowdownFixtures(matches), [matches]);
-  const showdownModel = useMemo(() => buildShowdownModel(matches), [matches]);
+  const displayMatches = useMemo(
+    () => (poolBoards.length > 0 ? hydratePoolFixturesFromSlots(matches, poolBoards) : matches),
+    [matches, poolBoards],
+  );
+
+  const byPool = useMemo(() => groupFixturesByPool(displayMatches), [displayMatches]);
+  const showdownFixtures = useMemo(() => filterShowdownFixtures(displayMatches), [displayMatches]);
+  const showdownModel = useMemo(() => buildShowdownModel(displayMatches), [displayMatches]);
 
   const poolCounts = useMemo(() => {
     const m = new Map<string, number>();
@@ -151,7 +158,10 @@ export function FixturesPage() {
       />
 
       <PublicPageContent width="2xl">
-        {adminBar ? <div className="mb-8">{adminBar}</div> : null}
+        <Link to="/fixtures/daywise" className="text-sm text-floodlight-bright underline">
+          Day-wise schedule (Sat / Sun halves)
+        </Link>
+        {adminBar ? <div className="mb-8 mt-6">{adminBar}</div> : null}
 
         {showIdle ? (
           <p className="mt-14 text-center text-sm leading-relaxed text-paper/50 sm:mt-16">

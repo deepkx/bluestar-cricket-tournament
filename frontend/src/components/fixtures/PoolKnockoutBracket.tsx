@@ -174,12 +174,12 @@ function BracketArrows({
 
   /** One dedicated gutter X (or pair) per connector — no shared vertical lanes. */
   const wires: WirePart[] = [
-    ...elbowWire(r1m1.outWinner, 314, r2m2.inBottom),
-    ...elbowWire(r1m4.outWinner, 330, r2m1.inBottom),
+    ...elbowWire(r1m1.outWinner, 314, r2m1.inBottom),
+    ...elbowWire(r1m4.outWinner, 330, r2m2.inBottom),
     ...bypassWire(r1m2.outTop, 302, TOP_BYPASS_Y, 702, r3m1.inTop),
     ...bypassWire(r1m3.outWinner, 346, BOT_BYPASS_Y, 734, r3m2.inTop),
-    ...elbowWire({ x: r2m2.outWinner.x, y: r2m2.inBottom.y }, 758, r3m1.inBottom),
-    ...elbowWire({ x: r2m1.outWinner.x, y: r2m1.inBottom.y }, 686, r3m2.inBottom),
+    ...elbowWire({ x: r2m1.outWinner.x, y: r2m1.inBottom.y }, 686, r3m1.inBottom),
+    ...elbowWire({ x: r2m2.outWinner.x, y: r2m2.inBottom.y }, 758, r3m2.inBottom),
     ...elbowWire(r3m1.outMid, 1056, fin.inTop),
     ...elbowWire(r3m2.outMid, 1080, fin.inBottom),
   ];
