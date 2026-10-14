@@ -33,19 +33,22 @@ export function useBoardDrawReveal({ revealIso, timezone, sessionKey, boardPhase
       setPhase('revealed');
       return;
     }
-    const forcedAnim = boardPhase === 'animating';
-    const countdownHandoff =
-      boardPhase === 'countdown' && countdownExpired && revealIso;
+    // Client finished this draw run — stay revealed even while server phase is still `animating`.
     if (
-      !forcedAnim &&
-      !countdownHandoff &&
       typeof sessionStorage !== 'undefined' &&
       sessionStorage.getItem(sessionKey) === '1'
     ) {
       setPhase('revealed');
       return;
     }
-    setPhase('animating');
+    const forcedAnim = boardPhase === 'animating';
+    const countdownHandoff =
+      boardPhase === 'countdown' && countdownExpired && revealIso;
+    if (forcedAnim || countdownHandoff) {
+      setPhase('animating');
+      return;
+    }
+    setPhase('waiting');
   }, [contentUnlocked, boardPhase, sessionKey, countdownExpired, revealIso]);
 
   const completeAnimation = useCallback(() => {
