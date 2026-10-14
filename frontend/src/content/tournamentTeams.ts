@@ -30,7 +30,7 @@ export const TOURNAMENT_ROSTER_TEAMS: RosterTeam[] = [
   { sortOrder: 20, teamName: 'Sharkzz', captainPhoneDigits: digits('8675274463') },
   { sortOrder: 21, teamName: '11 Star', captainPhoneDigits: digits('8778351582') },
   { sortOrder: 22, teamName: 'Captains XI CC', captainPhoneDigits: digits('9940806933') },
-  { sortOrder: 23, teamName: 'Hi-Flyers', captainPhoneDigits: digits('6369392972') },
+  { sortOrder: 23, teamName: 'Hi-Flyers', captainPhoneDigits: digits('9944919987') },
   { sortOrder: 24, teamName: 'Pheonix', captainPhoneDigits: digits('6380634397') },
   { sortOrder: 25, teamName: 'Thunder CC', captainPhoneDigits: digits('7010031315') },
   { sortOrder: 26, teamName: 'Madmasters', captainPhoneDigits: digits('8072549895') },

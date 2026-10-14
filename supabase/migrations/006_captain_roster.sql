@@ -99,7 +99,7 @@ VALUES
   ('Sharkzz', 'Captain', '8675274463', 20, 'confirmed', now()),
   ('11 Star', 'Captain', '8778351582', 21, 'confirmed', now()),
   ('Captains XI CC', 'Captain', '9940806933', 22, 'confirmed', now()),
-  ('Hi-Flyers', 'Captain', '6369392972', 23, 'confirmed', now()),
+  ('Hi-Flyers', 'Captain', '9944919987', 23, 'confirmed', now()),
   ('Pheonix', 'Captain', '6380634397', 24, 'confirmed', now()),
   ('Thunder CC', 'Captain', '7010031315', 25, 'confirmed', now()),
   ('Madmasters', 'Captain', '8072549895', 26, 'confirmed', now()),
