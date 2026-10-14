@@ -11,7 +11,7 @@ const links = [
   { to: '/teams', label: 'Teams' },
   { to: '/pools', label: 'Pools' },
   { to: '/fixtures', label: 'Fixtures' },
-  { to: '/fixtures/daywise', label: 'Day schedule' },
+  { to: '/fixtures/daywise', label: 'Daily fixtures' },
 ];
 
 type LayoutProps = { introActive?: boolean };

@@ -159,7 +159,7 @@ export function FixturesPage() {
 
       <PublicPageContent width="2xl">
         <Link to="/fixtures/daywise" className="text-sm text-floodlight-bright underline">
-          Day-wise schedule (Sat / Sun halves)
+          Daily fixtures (Sat / Sun sessions)
         </Link>
         {adminBar ? <div className="mb-8 mt-6">{adminBar}</div> : null}
 

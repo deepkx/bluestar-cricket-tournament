@@ -100,7 +100,7 @@ export function DaywiseFixturesPage() {
   if (countdownLive) {
     return (
       <PublishCountdownScreen
-        pageTitle="Day schedule"
+        pageTitle="Daily fixtures"
         headline="Fixtures countdown"
         targetIso={revealIso}
         timezone={timezone}
@@ -114,7 +114,7 @@ export function DaywiseFixturesPage() {
     <div className="bg-ink-deep pb-20 md:pb-28">
       <PublicPageHero
         kicker="Schedule"
-        title="Day-wise fixtures"
+        title="Daily fixtures"
         lead="Saturday and Sunday split into morning and afternoon sessions — every pool R1 & R2 match in IST."
       />
 

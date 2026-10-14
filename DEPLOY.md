@@ -37,6 +37,12 @@ Deploy. Open the site → **Teams** → captains use **Add squad** (last 4 digit
 
 Production URL (if using default naming): `https://bluestar-cricket-tournament.vercel.app`
 
+**If your live site is a different Vercel project** (e.g. `frontend-*.vercel.app`), Git pushes only update the project that is **connected** to GitHub. Either connect that project (Settings → Git, root **`frontend`**) or deploy manually:
+
+```bash
+cd frontend && npx vercel --prod
+```
+
 Admin can **edit/delete** confirmed teams, **download photos** (per team or all), toggle **registration open**, enable **2-player squads (testing)**, and export **CSV**.
 
 Fixtures: edit [`frontend/src/content/fixtures.json`](frontend/src/content/fixtures.json) when the draw is ready (empty array until then).

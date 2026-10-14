@@ -39,6 +39,7 @@ function AppRoutes() {
           <Route path="pools" element={<PoolsPage />} />
           <Route path="fixtures" element={<FixturesPage />} />
           <Route path="fixtures/daywise" element={<DaywiseFixturesPage />} />
+          <Route path="daily-fixtures" element={<Navigate to="/fixtures/daywise" replace />} />
           <Route path="register" element={<Navigate to="/teams" replace />} />
           <Route path="registration/success" element={<Navigate to="/teams" replace />} />
           <Route path="status" element={<Navigate to="/teams" replace />} />
