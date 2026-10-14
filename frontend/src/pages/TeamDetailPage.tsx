@@ -7,7 +7,7 @@ import { PublicPageHero } from '../components/layout/PublicPageHero';
 import { isFixedHostTeamName } from '../content/homeEvent';
 import { findRosterTeam } from '../content/tournamentTeams';
 import { getCurrentTournament } from '../data/tournament';
-import { getTeamByName, type TeamDetail } from '../data/teams';
+import { ensureFixedHostTeam, getTeamByName, type TeamDetail } from '../data/teams';
 import type { SquadProgress } from '../utils/squadProgress';
 import { mediaUrl } from '../utils/mediaUrl';
 
@@ -90,23 +90,54 @@ export function TeamDetailPage() {
   }, []);
 
   const isHost = detail ? isFixedHostTeamName(detail.teamName) : false;
-  const canCaptainAdd = detail && !isHost;
-  const hasTeamId = Boolean(detail?.teamId);
+  const canCaptainAdd = Boolean(detail);
 
   useEffect(() => {
-    if (searchParams.get('captain') !== '1' || !canCaptainAdd || loading) return;
-    if (hasTeamId) setVerifyOpen(true);
-    setSearchParams({}, { replace: true });
-  }, [searchParams, setSearchParams, canCaptainAdd, hasTeamId, loading]);
+    if (searchParams.get('captain') !== '1' || !detail || loading) return;
+
+    const openFromQuery = async () => {
+      let teamId = detail.teamId;
+      if (!teamId && isFixedHostTeamName(detail.teamName)) {
+        try {
+          teamId = await ensureFixedHostTeam(detail.teamName);
+          setDetail((d) => (d ? { ...d, teamId } : d));
+        } catch {
+          setSetupWarning(
+            'Could not set up the host team for squad upload. Run supabase/migrations/023_ensure_fixed_host_team.sql in Supabase, then try again.',
+          );
+          setSearchParams({}, { replace: true });
+          return;
+        }
+      }
+      if (teamId) setVerifyOpen(true);
+      setSearchParams({}, { replace: true });
+    };
+
+    void openFromQuery();
+  }, [searchParams, setSearchParams, detail, loading]);
 
   const logo = mediaUrl(detail?.logoUrl);
 
   const openCaptainFlow = () => {
-    if (!captainRosterOpen) {
-      setSetupWarning('Squad uploads are closed for this tournament. Contact the committee if you need changes.');
+    if (!detail || !captainRosterOpen) {
+      if (detail) {
+        setSetupWarning('Squad uploads are closed for this tournament. Contact the committee if you need changes.');
+      }
       return;
     }
-    if (!hasTeamId) {
+    if (!detail.teamId) {
+      if (isFixedHostTeamName(detail.teamName)) {
+        setSetupWarning('');
+        void ensureFixedHostTeam(detail.teamName)
+          .then((teamId) => {
+            setDetail((d) => (d ? { ...d, teamId } : d));
+            setVerifyOpen(true);
+          })
+          .catch(() => {
+            setSetupWarning('Could not set up the host team for squad upload. Try again or contact the committee.');
+          });
+        return;
+      }
       setSetupWarning(
         'Squad upload needs the team in Supabase first. Run supabase/migrations/006_captain_roster.sql in the Supabase SQL editor, then refresh.',
       );
@@ -174,7 +205,7 @@ export function TeamDetailPage() {
               </p>
             ) : null}
 
-            {!isHost && !rosterEdit ? (
+            {canCaptainAdd && !rosterEdit ? (
               <p className="mt-3 text-center text-xs text-paper/45">
                 Captains: verify with the last 4 digits of your registered mobile number.
               </p>

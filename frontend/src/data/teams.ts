@@ -176,6 +176,15 @@ export async function listDuplicatePlayerNamesAdmin(): Promise<DuplicatePlayerNa
   return groups;
 }
 
+/** Create or return confirmed row for Bluestar / Bluestar B (public RPC). */
+export async function ensureFixedHostTeam(teamName: string): Promise<string> {
+  const sb = requireSupabase();
+  const { data, error } = await sb.rpc('ensure_fixed_host_team', { p_team_name: teamName.trim() });
+  if (error) throw error;
+  if (!data) throw new Error('Not a fixed host team or could not ensure row.');
+  return data as string;
+}
+
 export async function getTeamByName(teamName: string): Promise<TeamDetail | null> {
   const sb = requireSupabase();
   const normalized = teamName.trim().toLowerCase().replace(/\s+/g, ' ');
