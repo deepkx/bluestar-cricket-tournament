@@ -18,4 +18,10 @@ export const BRACKET_ARROW_STAGGER_S = 0.1;
 export const BRACKET_ARROW_COUNT = 8;
 
 /** Time on each pool tab during live reveal. */
-export const POOL_REVEAL_MS = 6200;
+export const POOL_REVEAL_MS = 7200;
+
+/** Sidebar shuffle before each team lands in the bracket. */
+export const FIXTURE_PICK_ROLL_MS = 360;
+export const FIXTURE_PICK_ROLL_TICK_MS = 48;
+export const FIXTURE_PICK_LAND_MS = 140;
+export const FIXTURE_PICK_GAP_MS = 70;

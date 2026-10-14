@@ -14,9 +14,8 @@ import {
 import {
   fixtureRevealFlavor,
   type FixtureRevealFlavor,
-  type TeamSlotRevealMotion,
 } from './fixturesRevealRandom';
-import { TeamRevealMotion } from './TeamRevealMotion';
+import { useFixtureBracketTeamPick } from '../../hooks/useFixtureBracketTeamPick';
 
 const { layout: LAYOUT, canvasW: CANVAS_W, canvasH: CANVAS_H } = buildBracketLayout();
 
@@ -71,22 +70,47 @@ function bypassWire(from: Pt, g1: number, bypassY: number, g2: number, to: Pt): 
   ];
 }
 
+function isPoolTeamSide(side: BracketSide): boolean {
+  return Boolean(
+    side.kind === 'team' && side.text && side.text !== 'TBD' && !side.text.startsWith('Winner'),
+  );
+}
+
 function SideLine({
   side,
-  teamReveal,
-  slotMotion,
-  baseDelay,
+  pickMode,
+  pickDone,
+  teamSlotVisible,
   ease,
 }: {
   side: BracketSide;
-  teamReveal: boolean;
-  slotMotion: TeamSlotRevealMotion;
-  baseDelay: number;
+  pickMode: boolean;
+  pickDone: boolean;
+  teamSlotVisible: boolean;
   ease: [number, number, number, number];
 }) {
   const struck = side.eliminated;
+  const poolTeam = isPoolTeamSide(side);
+  const winnerLine = side.kind === 'winner' || side.text.startsWith('Winner');
+
+  if (pickMode && !pickDone && winnerLine) {
+    return (
+      <div className="flex min-h-[3rem] items-center rounded-sm border border-dashed border-paper/20 bg-ink-deep/80">
+        <span className="block w-full truncate px-3 text-sm text-paper/30">—</span>
+      </div>
+    );
+  }
+
+  if (pickMode && poolTeam && !teamSlotVisible) {
+    return (
+      <div className="flex min-h-[3rem] items-center rounded-sm border border-dashed border-paper/25 bg-ink-deep/90">
+        <span className="block w-full truncate px-3 text-sm font-medium text-paper/35 animate-pulse">···</span>
+      </div>
+    );
+  }
+
   const inner =
-    side.kind === 'team' && side.text && side.text !== 'TBD' && !side.text.startsWith('Winner') ? (
+    poolTeam ? (
       <Link
         to={`/teams/${encodeURIComponent(side.text)}`}
         className={`block truncate px-3 text-base font-semibold hover:text-floodlight-bright hover:underline ${
@@ -108,27 +132,31 @@ function SideLine({
         {side.text}
       </span>
     );
+
   const shell = (
     <div
       className={`flex min-h-[3rem] items-center rounded-sm border bg-ink-deep shadow-inner ${
         struck ? 'border-paper/10 opacity-75' : 'border-paper/25'
-      }`}
+      } ${pickMode && poolTeam && teamSlotVisible ? 'ring-1 ring-floodlight/40' : ''}`}
     >
       {inner}
     </div>
   );
 
-  return (
-    <TeamRevealMotion
-      active={teamReveal}
-      motionSpec={slotMotion}
-      baseDelay={baseDelay}
-      ease={ease}
-      className="w-full"
-    >
-      {shell}
-    </TeamRevealMotion>
-  );
+  if (pickMode && poolTeam && teamSlotVisible) {
+    return (
+      <motion.div
+        className="w-full"
+        initial={{ opacity: 0, x: -168, scale: 0.94 }}
+        animate={{ opacity: 1, x: 0, scale: 1 }}
+        transition={{ duration: 0.44, ease }}
+      >
+        {shell}
+      </motion.div>
+    );
+  }
+
+  return shell;
 }
 
 function bracketSlotTitle(posKey: PosKey): string {
@@ -142,18 +170,19 @@ function MatchBox({
   node,
   accent,
   posKey,
-  teamReveal,
   flavor,
-  matchBaseDelay,
+  pickMode,
+  pickDone,
+  isTeamSlotVisible,
 }: {
   node: BracketMatchNode;
   accent: 'blue' | 'gold' | 'dim';
   posKey: PosKey;
-  teamReveal: boolean;
   flavor: FixtureRevealFlavor;
-  matchBaseDelay: number;
+  pickMode: boolean;
+  pickDone: boolean;
+  isTeamSlotVisible: (posKey: PosKey, side: 'top' | 'bottom') => boolean;
 }) {
-  const slots = flavor.teamSlots[posKey];
   const hdr =
     accent === 'gold'
       ? 'bg-floodlight text-black'
@@ -170,16 +199,16 @@ function MatchBox({
       <div className="space-y-2 bg-ink-deep p-2.5">
         <SideLine
           side={node.top}
-          teamReveal={teamReveal}
-          slotMotion={slots.top}
-          baseDelay={matchBaseDelay + 0.12}
+          pickMode={pickMode}
+          pickDone={pickDone}
+          teamSlotVisible={isTeamSlotVisible(posKey, 'top')}
           ease={flavor.ease}
         />
         <SideLine
           side={node.bottom}
-          teamReveal={teamReveal}
-          slotMotion={slots.bottom}
-          baseDelay={matchBaseDelay + 0.22}
+          pickMode={pickMode}
+          pickDone={pickDone}
+          teamSlotVisible={isTeamSlotVisible(posKey, 'bottom')}
           ease={flavor.ease}
         />
       </div>
@@ -289,6 +318,9 @@ function PlacedMatch({
   revealActive,
   instant,
   flavor,
+  pickMode,
+  pickDone,
+  isTeamSlotVisible,
 }: {
   node: BracketMatchNode | undefined;
   posKey: PosKey;
@@ -296,12 +328,19 @@ function PlacedMatch({
   revealActive: boolean;
   instant: boolean;
   flavor: FixtureRevealFlavor;
+  pickMode: boolean;
+  pickDone: boolean;
+  isTeamSlotVisible: (posKey: PosKey, side: 'top' | 'bottom') => boolean;
 }) {
   const reduceMotion = useReducedMotion();
   if (!node) return null;
 
+  if (pickMode && !pickDone && (posKey.startsWith('r3') || posKey === 'final')) {
+    return null;
+  }
+
   const p = LAYOUT[posKey];
-  const skipMotion = instant || !revealActive || reduceMotion;
+  const skipMotion = instant || !revealActive || reduceMotion || pickMode;
   const revealMotion = flavor.matchMotion[posKey];
   const delay = BRACKET_MATCH_DELAY_S[posKey] + revealMotion.delayJitter;
 
@@ -331,9 +370,10 @@ function PlacedMatch({
         node={node}
         accent={accent}
         posKey={posKey}
-        teamReveal={!skipMotion}
         flavor={flavor}
-        matchBaseDelay={skipMotion ? 0 : Math.max(0, delay)}
+        pickMode={pickMode}
+        pickDone={pickDone}
+        isTeamSlotVisible={isTeamSlotVisible}
       />
     </motion.div>
   );
@@ -374,6 +414,13 @@ export function PoolKnockoutBracket({
     () => fixtureRevealFlavor(`${poolCode}-r${revealTick}`),
     [poolCode, revealTick],
   );
+  const pickMode = buildPhase && seeds.length > 0;
+  const teamPick = useFixtureBracketTeamPick({
+    active: pickMode,
+    seeds,
+    seedKey: `${poolCode}-pick-r${revealTick}`,
+  });
+  const pickDone = !pickMode || teamPick.done;
   const matchDayLabel = useMemo(() => {
     const first = fixtures.find((f) => f.scheduledAt)?.scheduledAt;
     return first ? formatFixtureDate(first) : null;
@@ -419,41 +466,47 @@ export function PoolKnockoutBracket({
               transition={{ duration: 0.45, delay: instant ? 0 : 0.25 }}
             >
               <p className="border-b border-paper/12 bg-floodlight/20 px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-floodlight-bright">
-                Teams · Pool {poolCode}
+                {pickMode ? 'Pick teams · Pool ' : 'Teams · Pool '}
+                {poolCode}
               </p>
+              {pickMode ? (
+                <p className="border-b border-paper/10 px-3 py-2 text-center text-[10px] uppercase tracking-widest text-paper/45">
+                  {teamPick.rolling ? 'Drawing…' : teamPick.done ? 'Bracket filled' : 'Shuffle → pick'}
+                </p>
+              ) : null}
               <ol className="divide-y divide-paper/10 text-base">
                 {seeds.map((s) => {
-                  const slotMotion = flavor.seedRows[s.slotOrder - 1] ?? flavor.seedRows[0];
-                  const row = (
-                    <>
+                  const picked = teamPick.pickedSlotOrders.has(s.slotOrder);
+                  const highlight = pickMode && teamPick.highlightSlotOrder === s.slotOrder;
+                  return (
+                    <li
+                      key={s.slotOrder}
+                      className={`flex gap-2 px-4 py-2.5 transition-colors ${
+                        highlight
+                          ? 'bg-floodlight/25 ring-1 ring-inset ring-floodlight/50'
+                          : picked
+                            ? 'bg-ink-deep/80 opacity-55'
+                            : ''
+                      }`}
+                    >
                       <span className="tabular-nums text-paper/40">{s.slotOrder}.</span>
                       {s.teamName ? (
                         <Link
                           to={`/teams/${encodeURIComponent(s.teamName)}`}
-                          className="truncate font-medium text-paper hover:text-floodlight-bright hover:underline"
+                          className={`truncate font-medium hover:text-floodlight-bright hover:underline ${
+                            highlight ? 'text-floodlight-bright' : picked ? 'text-paper/50' : 'text-paper'
+                          }`}
                         >
                           {s.teamName}
                         </Link>
                       ) : (
                         <span className="text-paper/35">—</span>
                       )}
-                    </>
-                  );
-                  return (
-                    <li key={s.slotOrder} className="flex gap-2 px-4 py-2.5">
-                      {buildPhase ? (
-                        <TeamRevealMotion
-                          active
-                          motionSpec={slotMotion}
-                          baseDelay={0.35}
-                          ease={flavor.ease}
-                          className="flex min-w-0 flex-1 gap-2"
-                        >
-                          {row}
-                        </TeamRevealMotion>
-                      ) : (
-                        row
-                      )}
+                      {picked ? (
+                        <span className="ml-auto text-xs font-bold text-floodlight-dim" aria-hidden>
+                          ✓
+                        </span>
+                      ) : null}
                     </li>
                   );
                 })}
@@ -492,8 +545,8 @@ export function PoolKnockoutBracket({
                 : null}
               <BracketArrows
                 markerId={`bracket-arr-${arrowMarkerId}`}
-                revealActive={buildPhase || (revealActive && instant)}
-                instant={instant || !buildPhase}
+                revealActive={(buildPhase && pickDone) || (revealActive && instant)}
+                instant={instant || !buildPhase || !pickDone}
                 flavor={flavor}
               />
               {R1_KEYS.map((key, i) => (
@@ -505,6 +558,9 @@ export function PoolKnockoutBracket({
                   revealActive={revealActive}
                   instant={instant}
                   flavor={flavor}
+                  pickMode={pickMode}
+                  pickDone={pickDone}
+                  isTeamSlotVisible={teamPick.isTeamSlotVisible}
                 />
               ))}
               <PlacedMatch
@@ -514,6 +570,9 @@ export function PoolKnockoutBracket({
                 revealActive={revealActive}
                 instant={instant}
                 flavor={flavor}
+                pickMode={pickMode}
+                pickDone={pickDone}
+                isTeamSlotVisible={teamPick.isTeamSlotVisible}
               />
               <PlacedMatch
                 node={model.r2.find((m) => m.matchNum === 2)}
@@ -522,6 +581,9 @@ export function PoolKnockoutBracket({
                 revealActive={revealActive}
                 instant={instant}
                 flavor={flavor}
+                pickMode={pickMode}
+                pickDone={pickDone}
+                isTeamSlotVisible={teamPick.isTeamSlotVisible}
               />
               <PlacedMatch
                 node={model.r3.find((m) => m.matchNum === 1)}
@@ -530,6 +592,9 @@ export function PoolKnockoutBracket({
                 revealActive={revealActive}
                 instant={instant}
                 flavor={flavor}
+                pickMode={pickMode}
+                pickDone={pickDone}
+                isTeamSlotVisible={teamPick.isTeamSlotVisible}
               />
               <PlacedMatch
                 node={model.r3.find((m) => m.matchNum === 2)}
@@ -538,6 +603,9 @@ export function PoolKnockoutBracket({
                 revealActive={revealActive}
                 instant={instant}
                 flavor={flavor}
+                pickMode={pickMode}
+                pickDone={pickDone}
+                isTeamSlotVisible={teamPick.isTeamSlotVisible}
               />
               <PlacedMatch
                 node={model.final ?? undefined}
@@ -546,6 +614,9 @@ export function PoolKnockoutBracket({
                 revealActive={revealActive}
                 instant={instant}
                 flavor={flavor}
+                pickMode={pickMode}
+                pickDone={pickDone}
+                isTeamSlotVisible={teamPick.isTeamSlotVisible}
               />
             </div>
           </div>
