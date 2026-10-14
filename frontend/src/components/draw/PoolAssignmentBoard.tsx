@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import type { ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 import { POOL_CODES, POOL_SLOT_COUNT, type PoolCode } from '../../data/pools';
 import { mediaUrl } from '../../utils/mediaUrl';
 import { teamInfoFromMap, type DrawTeamInfo } from './DrawTeamChip';
@@ -58,9 +59,12 @@ export function PoolBoardRow({ slotNumber, teamName, teamMap, highlight, trailin
         ) : team ? (
           <div className="flex min-w-0 items-center gap-3">
             <PoolTeamMark team={team} />
-            <span className="min-w-0 text-[15px] font-semibold leading-snug tracking-normal text-paper sm:text-base sm:leading-normal">
+            <Link
+              to={`/teams/${encodeURIComponent(team.teamName)}`}
+              className="min-w-0 text-[15px] font-semibold leading-snug tracking-normal text-paper hover:text-floodlight-bright hover:underline sm:text-base sm:leading-normal"
+            >
               {team.teamName}
-            </span>
+            </Link>
           </div>
         ) : (
           <span className="text-xs font-medium uppercase tracking-[0.12em] text-paper/28">Open slot</span>
