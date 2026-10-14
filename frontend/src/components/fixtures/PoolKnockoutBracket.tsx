@@ -11,7 +11,12 @@ import {
   BRACKET_ARROW_STAGGER_S,
   BRACKET_MATCH_DELAY_S,
 } from './fixturesRevealTiming';
-import { fixtureRevealFlavor, type FixtureRevealFlavor } from './fixturesRevealRandom';
+import {
+  fixtureRevealFlavor,
+  type FixtureRevealFlavor,
+  type TeamSlotRevealMotion,
+} from './fixturesRevealRandom';
+import { TeamRevealMotion } from './TeamRevealMotion';
 
 const { layout: LAYOUT, canvasW: CANVAS_W, canvasH: CANVAS_H } = buildBracketLayout();
 
@@ -66,7 +71,19 @@ function bypassWire(from: Pt, g1: number, bypassY: number, g2: number, to: Pt): 
   ];
 }
 
-function SideLine({ side }: { side: BracketSide }) {
+function SideLine({
+  side,
+  teamReveal,
+  slotMotion,
+  baseDelay,
+  ease,
+}: {
+  side: BracketSide;
+  teamReveal: boolean;
+  slotMotion: TeamSlotRevealMotion;
+  baseDelay: number;
+  ease: [number, number, number, number];
+}) {
   const struck = side.eliminated;
   const inner =
     side.kind === 'team' && side.text && side.text !== 'TBD' && !side.text.startsWith('Winner') ? (
@@ -91,7 +108,7 @@ function SideLine({ side }: { side: BracketSide }) {
         {side.text}
       </span>
     );
-  return (
+  const shell = (
     <div
       className={`flex min-h-[3rem] items-center rounded-sm border bg-ink-deep shadow-inner ${
         struck ? 'border-paper/10 opacity-75' : 'border-paper/25'
@@ -99,6 +116,18 @@ function SideLine({ side }: { side: BracketSide }) {
     >
       {inner}
     </div>
+  );
+
+  return (
+    <TeamRevealMotion
+      active={teamReveal}
+      motionSpec={slotMotion}
+      baseDelay={baseDelay}
+      ease={ease}
+      className="w-full"
+    >
+      {shell}
+    </TeamRevealMotion>
   );
 }
 
@@ -113,11 +142,18 @@ function MatchBox({
   node,
   accent,
   posKey,
+  teamReveal,
+  flavor,
+  matchBaseDelay,
 }: {
   node: BracketMatchNode;
   accent: 'blue' | 'gold' | 'dim';
   posKey: PosKey;
+  teamReveal: boolean;
+  flavor: FixtureRevealFlavor;
+  matchBaseDelay: number;
 }) {
+  const slots = flavor.teamSlots[posKey];
   const hdr =
     accent === 'gold'
       ? 'bg-floodlight text-black'
@@ -132,8 +168,20 @@ function MatchBox({
     >
       <div className={`px-3 py-3 text-center text-base font-bold uppercase tracking-widest ${hdr}`}>{title}</div>
       <div className="space-y-2 bg-ink-deep p-2.5">
-        <SideLine side={node.top} />
-        <SideLine side={node.bottom} />
+        <SideLine
+          side={node.top}
+          teamReveal={teamReveal}
+          slotMotion={slots.top}
+          baseDelay={matchBaseDelay + 0.12}
+          ease={flavor.ease}
+        />
+        <SideLine
+          side={node.bottom}
+          teamReveal={teamReveal}
+          slotMotion={slots.bottom}
+          baseDelay={matchBaseDelay + 0.22}
+          ease={flavor.ease}
+        />
       </div>
       {node.kickoff ? (
         <p className="border-t border-paper/15 bg-ink-deep px-3 py-2.5 text-center text-xs font-semibold leading-snug tabular-nums text-paper/85 sm:text-sm">
@@ -279,7 +327,14 @@ function PlacedMatch({
         ease: flavor.ease,
       }}
     >
-      <MatchBox node={node} accent={accent} posKey={posKey} />
+      <MatchBox
+        node={node}
+        accent={accent}
+        posKey={posKey}
+        teamReveal={!skipMotion}
+        flavor={flavor}
+        matchBaseDelay={skipMotion ? 0 : Math.max(0, delay)}
+      />
     </motion.div>
   );
 }
@@ -367,21 +422,41 @@ export function PoolKnockoutBracket({
                 Teams · Pool {poolCode}
               </p>
               <ol className="divide-y divide-paper/10 text-base">
-                {seeds.map((s) => (
-                  <li key={s.slotOrder} className="flex gap-2 px-4 py-2.5">
-                    <span className="tabular-nums text-paper/40">{s.slotOrder}.</span>
-                    {s.teamName ? (
-                      <Link
-                        to={`/teams/${encodeURIComponent(s.teamName)}`}
-                        className="truncate font-medium text-paper hover:text-floodlight-bright hover:underline"
-                      >
-                        {s.teamName}
-                      </Link>
-                    ) : (
-                      <span className="text-paper/35">—</span>
-                    )}
-                  </li>
-                ))}
+                {seeds.map((s) => {
+                  const slotMotion = flavor.seedRows[s.slotOrder - 1] ?? flavor.seedRows[0];
+                  const row = (
+                    <>
+                      <span className="tabular-nums text-paper/40">{s.slotOrder}.</span>
+                      {s.teamName ? (
+                        <Link
+                          to={`/teams/${encodeURIComponent(s.teamName)}`}
+                          className="truncate font-medium text-paper hover:text-floodlight-bright hover:underline"
+                        >
+                          {s.teamName}
+                        </Link>
+                      ) : (
+                        <span className="text-paper/35">—</span>
+                      )}
+                    </>
+                  );
+                  return (
+                    <li key={s.slotOrder} className="flex gap-2 px-4 py-2.5">
+                      {buildPhase ? (
+                        <TeamRevealMotion
+                          active
+                          motionSpec={slotMotion}
+                          baseDelay={0.35}
+                          ease={flavor.ease}
+                          className="flex min-w-0 flex-1 gap-2"
+                        >
+                          {row}
+                        </TeamRevealMotion>
+                      ) : (
+                        row
+                      )}
+                    </li>
+                  );
+                })}
               </ol>
             </motion.aside>
           ) : null}

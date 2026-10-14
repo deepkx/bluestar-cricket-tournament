@@ -1,7 +1,8 @@
 import { Fragment, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { fixtureRevealFlavor } from './fixturesRevealRandom';
+import { fixtureRevealFlavor, type TeamSlotRevealMotion } from './fixturesRevealRandom';
+import { TeamRevealMotion } from './TeamRevealMotion';
 import type { FixtureRow } from '../../data/pools';
 import {
   fixtureDisplayOpponentB,
@@ -18,22 +19,27 @@ function TeamName({
   name,
   animating,
   eliminated,
+  teamReveal,
+  slotMotion,
+  baseDelay,
+  ease,
 }: {
   name: string;
   animating: boolean;
   eliminated?: boolean;
+  teamReveal?: boolean;
+  slotMotion?: TeamSlotRevealMotion;
+  baseDelay?: number;
+  ease?: [number, number, number, number];
 }) {
   const placeholder = name === 'TBD' || name.startsWith('Winner') || !name.trim();
-  if (placeholder) {
-    return (
-      <span
-        className={`text-base font-medium ${eliminated ? 'text-paper/35 line-through' : 'text-paper/55'}`}
-      >
-        {name || 'TBD'}
-      </span>
-    );
-  }
-  return (
+  const body = placeholder ? (
+    <span
+      className={`text-base font-medium ${eliminated ? 'text-paper/35 line-through' : 'text-paper/55'}`}
+    >
+      {name || 'TBD'}
+    </span>
+  ) : (
     <Link
       to={`/teams/${encodeURIComponent(name)}`}
       className={`font-medium hover:text-floodlight-bright hover:underline ${
@@ -47,6 +53,21 @@ function TeamName({
       {name}
     </Link>
   );
+
+  if (teamReveal && slotMotion && ease) {
+    return (
+      <TeamRevealMotion
+        active
+        motionSpec={slotMotion}
+        baseDelay={baseDelay ?? 0}
+        ease={ease}
+        className="inline-block"
+      >
+        {body}
+      </TeamRevealMotion>
+    );
+  }
+  return body;
 }
 
 type Props = {
@@ -79,6 +100,8 @@ function ScheduleTable({
   showContent,
   rowDelayJitter,
   rowEase,
+  scheduleTeamSlots,
+  teamReveal,
 }: {
   rows: FixtureRow[];
   poolFixtures: FixtureRow[];
@@ -86,6 +109,8 @@ function ScheduleTable({
   showContent: boolean;
   rowDelayJitter: number[];
   rowEase: [number, number, number, number];
+  scheduleTeamSlots: TeamSlotRevealMotion[];
+  teamReveal: boolean;
 }) {
   return (
     <table className="w-full min-w-[720px] border-collapse text-base">
@@ -106,6 +131,9 @@ function ScheduleTable({
           const prevDate = i > 0 ? formatFixtureDate(rows[i - 1]?.scheduledAt ?? null) : null;
           const showDateHeader = dateKey !== prevDate;
           const code = fixtureMatchCode(row.label, i + 1);
+          const teamSlotA = scheduleTeamSlots[(i * 2) % scheduleTeamSlots.length];
+          const teamSlotB = scheduleTeamSlots[(i * 2 + 1) % scheduleTeamSlots.length];
+          const rowBaseDelay = i * 0.07 + (rowDelayJitter[i % rowDelayJitter.length] ?? 0);
 
           return (
             <Fragment key={row.id}>
@@ -135,9 +163,25 @@ function ScheduleTable({
                 </td>
                 <td className="px-5 py-5 text-lg leading-snug">
                   <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
-                    <TeamName name={teamA} animating={false} eliminated={eliminatedA} />
+                    <TeamName
+                      name={teamA}
+                      animating={animating}
+                      eliminated={eliminatedA}
+                      teamReveal={teamReveal}
+                      slotMotion={teamSlotA}
+                      baseDelay={rowBaseDelay + 0.08}
+                      ease={rowEase}
+                    />
                     <span className="text-xs font-semibold uppercase tracking-wider text-paper/40">vs</span>
-                    <TeamName name={teamB} animating={false} eliminated={eliminatedB} />
+                    <TeamName
+                      name={teamB}
+                      animating={animating}
+                      eliminated={eliminatedB}
+                      teamReveal={teamReveal}
+                      slotMotion={teamSlotB}
+                      baseDelay={rowBaseDelay + 0.18}
+                      ease={rowEase}
+                    />
                   </span>
                   {row.venue ? <p className="mt-1 text-xs text-paper/45">{row.venue}</p> : null}
                 </td>
@@ -160,6 +204,7 @@ export function FixturesGroupTable({
 }: Props) {
   const meta = POOL_FIXTURE_META[poolCode] ?? { dayLabel: '', startNote: '', matchMinutes: 45 };
   const showContent = revealed || !animating;
+  const teamReveal = animating && !revealed;
   const flavor = useMemo(
     () => fixtureRevealFlavor(`${poolCode}-schedule-r${revealTick}`),
     [poolCode, revealTick],
@@ -198,6 +243,8 @@ export function FixturesGroupTable({
           showContent={showContent}
           rowDelayJitter={flavor.rowDelayJitter}
           rowEase={flavor.ease}
+          scheduleTeamSlots={flavor.scheduleTeamSlots}
+          teamReveal={teamReveal}
         />
       </div>
 
@@ -213,6 +260,8 @@ export function FixturesGroupTable({
             showContent={showContent}
             rowDelayJitter={flavor.rowDelayJitter}
             rowEase={flavor.ease}
+            scheduleTeamSlots={flavor.scheduleTeamSlots}
+            teamReveal={teamReveal}
           />
         </div>
       ) : null}

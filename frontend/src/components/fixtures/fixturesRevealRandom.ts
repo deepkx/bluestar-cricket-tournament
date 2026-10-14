@@ -40,6 +40,20 @@ export type MatchRevealMotion = {
   duration: number;
 };
 
+/** Per team row inside a match box or schedule row. */
+export type TeamSlotRevealMotion = {
+  delay: number;
+  x: number;
+  y: number;
+  rotate: number;
+  duration: number;
+};
+
+export type MatchTeamSlots = {
+  top: TeamSlotRevealMotion;
+  bottom: TeamSlotRevealMotion;
+};
+
 export type RevealSparkle = {
   leftPct: number;
   topPct: number;
@@ -47,8 +61,21 @@ export type RevealSparkle = {
   scale: number;
 };
 
+function teamSlot(rand: () => number): TeamSlotRevealMotion {
+  return {
+    delay: rand() * 0.42,
+    x: (rand() - 0.5) * 48,
+    y: (rand() - 0.5) * 20,
+    rotate: (rand() - 0.5) * 8,
+    duration: 0.32 + rand() * 0.28,
+  };
+}
+
 export type FixtureRevealFlavor = {
   matchMotion: Record<BracketPosKey, MatchRevealMotion>;
+  teamSlots: Record<BracketPosKey, MatchTeamSlots>;
+  seedRows: TeamSlotRevealMotion[];
+  scheduleTeamSlots: TeamSlotRevealMotion[];
   arrowJitter: number[];
   rowDelayJitter: number[];
   sweep: {
@@ -72,6 +99,7 @@ const EASE_PRESETS: [number, number, number, number][] = [
 export function fixtureRevealFlavor(seed: string): FixtureRevealFlavor {
   const rand = mulberry32(hashSeed(seed));
   const matchMotion = {} as Record<BracketPosKey, MatchRevealMotion>;
+  const teamSlots = {} as Record<BracketPosKey, MatchTeamSlots>;
   for (const key of POS_KEYS) {
     matchMotion[key] = {
       delayJitter: rand() * 0.16 - 0.05,
@@ -81,7 +109,10 @@ export function fixtureRevealFlavor(seed: string): FixtureRevealFlavor {
       scale: 0.8 + rand() * 0.14,
       duration: 0.36 + rand() * 0.28,
     };
+    teamSlots[key] = { top: teamSlot(rand), bottom: teamSlot(rand) };
   }
+  const seedRows = Array.from({ length: 10 }, () => teamSlot(rand));
+  const scheduleTeamSlots = Array.from({ length: 24 }, () => teamSlot(rand));
   const arrowJitter = Array.from({ length: 8 }, () => rand() * 0.14 - 0.04);
   const rowDelayJitter = Array.from({ length: 16 }, () => rand() * 0.1 - 0.02);
   const flip = rand() > 0.5;
@@ -95,6 +126,9 @@ export function fixtureRevealFlavor(seed: string): FixtureRevealFlavor {
 
   return {
     matchMotion,
+    teamSlots,
+    seedRows,
+    scheduleTeamSlots,
     arrowJitter,
     rowDelayJitter,
     sweep: {

@@ -7,7 +7,12 @@ import { BracketScheduleFoot } from './BracketScheduleFoot';
 import type { BracketSide } from '../../utils/poolBracketModel';
 import { BRACKET_MATCH_W, bracketMatchBoxHeight } from './bracketLayout';
 import { BRACKET_ARROW_BASE_S, BRACKET_ARROW_STAGGER_S } from './fixturesRevealTiming';
-import { fixtureRevealFlavor, type FixtureRevealFlavor } from './fixturesRevealRandom';
+import {
+  fixtureRevealFlavor,
+  type FixtureRevealFlavor,
+  type TeamSlotRevealMotion,
+} from './fixturesRevealRandom';
+import { TeamRevealMotion } from './TeamRevealMotion';
 
 const HDR_H = 38;
 const TEAM_H = 48;
@@ -56,7 +61,19 @@ function elbowWire(from: Pt, gutterX: number, to: Pt): WirePart[] {
   ];
 }
 
-function SideLine({ side }: { side: BracketSide }) {
+function SideLine({
+  side,
+  teamReveal,
+  slotMotion,
+  baseDelay,
+  ease,
+}: {
+  side: BracketSide;
+  teamReveal: boolean;
+  slotMotion: TeamSlotRevealMotion;
+  baseDelay: number;
+  ease: [number, number, number, number];
+}) {
   const struck = side.eliminated;
   const inner =
     side.kind === 'team' && side.text && !side.text.startsWith('Winner') ? (
@@ -81,7 +98,7 @@ function SideLine({ side }: { side: BracketSide }) {
         {side.text}
       </span>
     );
-  return (
+  const shell = (
     <div
       className={`flex min-h-[3rem] items-center rounded-sm border bg-ink-deep shadow-inner ${
         struck ? 'border-paper/10 opacity-75' : 'border-paper/25'
@@ -90,15 +107,36 @@ function SideLine({ side }: { side: BracketSide }) {
       {inner}
     </div>
   );
+
+  return (
+    <TeamRevealMotion
+      active={teamReveal}
+      motionSpec={slotMotion}
+      baseDelay={baseDelay}
+      ease={ease}
+      className="w-full"
+    >
+      {shell}
+    </TeamRevealMotion>
+  );
 }
 
 function MatchCard({
   match,
   accent,
+  teamReveal,
+  flavor,
+  motionKey,
+  matchBaseDelay,
 }: {
   match: ShowdownMatchView;
   accent: 'blue' | 'gold';
+  teamReveal: boolean;
+  flavor: FixtureRevealFlavor;
+  motionKey: ShowdownMotionKey;
+  matchBaseDelay: number;
 }) {
+  const slots = flavor.teamSlots[motionKey];
   const hdr = accent === 'gold' ? 'bg-floodlight text-black' : 'bg-electric text-ink-deep';
   return (
     <div
@@ -109,8 +147,20 @@ function MatchCard({
         {match.title}
       </div>
       <div className="space-y-2 bg-ink-deep p-2.5">
-        <SideLine side={match.top} />
-        <SideLine side={match.bottom} />
+        <SideLine
+          side={match.top}
+          teamReveal={teamReveal}
+          slotMotion={slots.top}
+          baseDelay={matchBaseDelay + 0.12}
+          ease={flavor.ease}
+        />
+        <SideLine
+          side={match.bottom}
+          teamReveal={teamReveal}
+          slotMotion={slots.bottom}
+          baseDelay={matchBaseDelay + 0.22}
+          ease={flavor.ease}
+        />
       </div>
       {match.kickoff ? (
         <p className="border-t border-paper/15 bg-ink-deep px-3 py-2.5 text-center text-xs font-semibold leading-snug tabular-nums text-paper/85 sm:text-sm">
@@ -192,7 +242,9 @@ type Props = {
 };
 
 const DELAY = { semi1: 0.12, semi2: 0.36, final: 0.72 };
+
 const SHOWDOWN_KEYS = ['r1m1', 'r1m2', 'final'] as const;
+type ShowdownMotionKey = (typeof SHOWDOWN_KEYS)[number];
 
 export function ShowdownBracket({
   matches,
@@ -238,7 +290,7 @@ export function ShowdownBracket({
     y: number;
     accent: 'blue' | 'gold';
     delay: number;
-    motionKey: (typeof SHOWDOWN_KEYS)[number];
+    motionKey: ShowdownMotionKey;
   }[] = [];
   if (semi1) {
     placed.push({
@@ -329,6 +381,7 @@ export function ShowdownBracket({
             />
             {placed.map(({ match, x, y, accent, delay, motionKey }) => {
               const m = flavor.matchMotion[motionKey];
+              const matchBaseDelay = instant || reduceMotion ? 0 : delay + m.delayJitter;
               return (
                 <motion.div
                   key={match.id}
@@ -348,11 +401,18 @@ export function ShowdownBracket({
                   animate={{ opacity: 1, scale: 1, rotate: 0, x: 0, y: 0 }}
                   transition={{
                     duration: m.duration,
-                    delay: instant || reduceMotion ? 0 : delay + m.delayJitter,
+                    delay: matchBaseDelay,
                     ease: flavor.ease,
                   }}
                 >
-                  <MatchCard match={match} accent={accent} />
+                  <MatchCard
+                    match={match}
+                    accent={accent}
+                    teamReveal={buildPhase && !reduceMotion}
+                    flavor={flavor}
+                    motionKey={motionKey}
+                    matchBaseDelay={matchBaseDelay}
+                  />
                 </motion.div>
               );
             })}
