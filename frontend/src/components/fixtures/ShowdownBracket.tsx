@@ -1,4 +1,4 @@
-import { useId } from 'react';
+import { useId, useMemo } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import type { FixtureRow } from '../../data/pools';
@@ -7,6 +7,7 @@ import { BracketScheduleFoot } from './BracketScheduleFoot';
 import type { BracketSide } from '../../utils/poolBracketModel';
 import { BRACKET_MATCH_W, bracketMatchBoxHeight } from './bracketLayout';
 import { BRACKET_ARROW_BASE_S, BRACKET_ARROW_STAGGER_S } from './fixturesRevealTiming';
+import { fixtureRevealFlavor, type FixtureRevealFlavor } from './fixturesRevealRandom';
 
 const HDR_H = 38;
 const TEAM_H = 48;
@@ -124,10 +125,12 @@ function ShowdownArrows({
   markerId,
   revealActive,
   instant,
+  flavor,
 }: {
   markerId: string;
   revealActive: boolean;
   instant: boolean;
+  flavor: FixtureRevealFlavor;
 }) {
   const reduceMotion = useReducedMotion();
   const stroke = 'rgba(229,160,23,0.75)';
@@ -161,13 +164,15 @@ function ShowdownArrows({
             animate={{ pathLength: 1, opacity: 1 }}
             transition={{
               pathLength: {
-                duration: 0.55,
-                delay: BRACKET_ARROW_BASE_S + i * BRACKET_ARROW_STAGGER_S,
+                duration: 0.45 + (flavor.arrowJitter[i] ?? 0) + 0.12,
+                delay:
+                  BRACKET_ARROW_BASE_S + i * BRACKET_ARROW_STAGGER_S + (flavor.arrowJitter[i] ?? 0),
                 ease: 'easeOut',
               },
               opacity: {
                 duration: 0.25,
-                delay: BRACKET_ARROW_BASE_S + i * BRACKET_ARROW_STAGGER_S,
+                delay:
+                  BRACKET_ARROW_BASE_S + i * BRACKET_ARROW_STAGGER_S + (flavor.arrowJitter[i] ?? 0),
               },
             }}
             markerEnd={w.arrow ? `url(#${markerId})` : undefined}
@@ -187,6 +192,7 @@ type Props = {
 };
 
 const DELAY = { semi1: 0.12, semi2: 0.36, final: 0.72 };
+const SHOWDOWN_KEYS = ['r1m1', 'r1m2', 'final'] as const;
 
 export function ShowdownBracket({
   matches,
@@ -198,6 +204,11 @@ export function ShowdownBracket({
   const arrowMarkerId = useId().replace(/:/g, '');
   const reduceMotion = useReducedMotion();
   const instant = revealed || !revealActive;
+  const buildPhase = revealActive && !instant;
+  const flavor = useMemo(
+    () => fixtureRevealFlavor(`showdown-r${revealTick}`),
+    [revealTick],
+  );
   const semi1 = matches.find((m) => m.kind === 'semi1');
   const semi2 = matches.find((m) => m.kind === 'semi2');
   const fin = matches.find((m) => m.kind === 'final');
@@ -221,10 +232,44 @@ export function ShowdownBracket({
     );
   }
 
-  const placed: { match: ShowdownMatchView; x: number; y: number; accent: 'blue' | 'gold'; delay: number }[] = [];
-  if (semi1) placed.push({ match: semi1, x: X_SEMI, y: semi1Y, accent: 'blue', delay: DELAY.semi1 });
-  if (semi2) placed.push({ match: semi2, x: X_SEMI, y: semi2Y, accent: 'blue', delay: DELAY.semi2 });
-  if (fin) placed.push({ match: fin, x: X_FINAL, y: finalY, accent: 'gold', delay: DELAY.final });
+  const placed: {
+    match: ShowdownMatchView;
+    x: number;
+    y: number;
+    accent: 'blue' | 'gold';
+    delay: number;
+    motionKey: (typeof SHOWDOWN_KEYS)[number];
+  }[] = [];
+  if (semi1) {
+    placed.push({
+      match: semi1,
+      x: X_SEMI,
+      y: semi1Y,
+      accent: 'blue',
+      delay: DELAY.semi1,
+      motionKey: 'r1m1',
+    });
+  }
+  if (semi2) {
+    placed.push({
+      match: semi2,
+      x: X_SEMI,
+      y: semi2Y,
+      accent: 'blue',
+      delay: DELAY.semi2,
+      motionKey: 'r1m2',
+    });
+  }
+  if (fin) {
+    placed.push({
+      match: fin,
+      x: X_FINAL,
+      y: finalY,
+      accent: 'gold',
+      delay: DELAY.final,
+      motionKey: 'final',
+    });
+  }
 
   return (
     <div
@@ -236,9 +281,10 @@ export function ShowdownBracket({
         {revealActive && !instant ? (
           <motion.div
             className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-floodlight/15 to-transparent"
-            initial={{ x: '-100%' }}
-            animate={{ x: '100%' }}
-            transition={{ duration: 1.1, ease: 'easeInOut' }}
+            style={{ skewX: `${flavor.sweep.skewDeg}deg` }}
+            initial={{ x: flavor.sweep.fromX }}
+            animate={{ x: flavor.sweep.toX }}
+            transition={{ duration: flavor.sweep.duration, ease: 'easeInOut' }}
           />
         ) : null}
         <p className="relative font-display text-2xl tracking-wide text-floodlight-bright sm:text-3xl">Showdown</p>
@@ -262,23 +308,54 @@ export function ShowdownBracket({
             <span className="ml-auto pr-[18%]">Final</span>
           </motion.div>
           <div className="relative" style={{ width: CANVAS_W, height: CANVAS_H, marginTop: 20 }}>
-            <ShowdownArrows markerId={`sd-arr-${arrowMarkerId}`} revealActive={revealActive} instant={instant} />
-            {placed.map(({ match, x, y, accent, delay }) => (
-              <motion.div
-                key={match.id}
-                className="absolute z-20"
-                style={{ left: x, top: y }}
-                initial={instant || reduceMotion ? false : { opacity: 0, scale: 0.88 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{
-                  duration: 0.45,
-                  delay: instant || reduceMotion ? 0 : delay,
-                  ease: [0.22, 1, 0.36, 1],
-                }}
-              >
-                <MatchCard match={match} accent={accent} />
-              </motion.div>
-            ))}
+            {buildPhase
+              ? flavor.sparkles.map((s, i) => (
+                  <motion.span
+                    key={i}
+                    className="pointer-events-none absolute z-[4] block h-2 w-2 rounded-full bg-floodlight-bright/70 blur-[1px]"
+                    style={{ left: `${s.leftPct}%`, top: `${s.topPct}%` }}
+                    initial={{ opacity: 0, scale: 0 }}
+                    animate={{ opacity: [0, 1, 0], scale: [0, s.scale, 0] }}
+                    transition={{ duration: 0.65, delay: s.delay, ease: 'easeOut' }}
+                    aria-hidden
+                  />
+                ))
+              : null}
+            <ShowdownArrows
+              markerId={`sd-arr-${arrowMarkerId}`}
+              revealActive={buildPhase || (revealActive && instant)}
+              instant={instant || !buildPhase}
+              flavor={flavor}
+            />
+            {placed.map(({ match, x, y, accent, delay, motionKey }) => {
+              const m = flavor.matchMotion[motionKey];
+              return (
+                <motion.div
+                  key={match.id}
+                  className="absolute z-20"
+                  style={{ left: x, top: y }}
+                  initial={
+                    instant || reduceMotion
+                      ? false
+                      : {
+                          opacity: 0,
+                          scale: m.scale,
+                          rotate: m.rotate,
+                          x: m.x,
+                          y: m.y,
+                        }
+                  }
+                  animate={{ opacity: 1, scale: 1, rotate: 0, x: 0, y: 0 }}
+                  transition={{
+                    duration: m.duration,
+                    delay: instant || reduceMotion ? 0 : delay + m.delayJitter,
+                    ease: flavor.ease,
+                  }}
+                >
+                  <MatchCard match={match} accent={accent} />
+                </motion.div>
+              );
+            })}
           </div>
         </div>
       </div>

@@ -1,6 +1,7 @@
-import { Fragment } from 'react';
+import { Fragment, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { fixtureRevealFlavor } from './fixturesRevealRandom';
 import type { FixtureRow } from '../../data/pools';
 import {
   fixtureDisplayOpponentB,
@@ -76,11 +77,15 @@ function ScheduleTable({
   poolFixtures,
   animating,
   showContent,
+  rowDelayJitter,
+  rowEase,
 }: {
   rows: FixtureRow[];
   poolFixtures: FixtureRow[];
   animating: boolean;
   showContent: boolean;
+  rowDelayJitter: number[];
+  rowEase: [number, number, number, number];
 }) {
   return (
     <table className="w-full min-w-[720px] border-collapse text-base">
@@ -113,9 +118,13 @@ function ScheduleTable({
               ) : null}
               <motion.tr
                 className="border-b border-paper/8 odd:bg-ink-deep/20"
-                initial={animating ? { opacity: 0 } : false}
-                animate={showContent ? { opacity: 1 } : { opacity: 0.35 }}
-                transition={{ delay: animating ? i * 0.08 : 0 }}
+                initial={animating ? { opacity: 0, x: (rowDelayJitter[i % rowDelayJitter.length] ?? 0) * 40 } : false}
+                animate={showContent ? { opacity: 1, x: 0 } : { opacity: 0.35, x: 0 }}
+                transition={{
+                  delay: animating ? i * 0.07 + (rowDelayJitter[i % rowDelayJitter.length] ?? 0) : 0,
+                  duration: 0.4,
+                  ease: rowEase,
+                }}
               >
                 <td className="whitespace-nowrap px-5 py-5">
                   <RoundBadge label={row.label} />
@@ -146,10 +155,15 @@ export function FixturesGroupTable({
   fixtures,
   animating,
   revealed,
+  revealTick = 0,
   poolFixtures = fixtures,
 }: Props) {
   const meta = POOL_FIXTURE_META[poolCode] ?? { dayLabel: '', startNote: '', matchMinutes: 45 };
   const showContent = revealed || !animating;
+  const flavor = useMemo(
+    () => fixtureRevealFlavor(`${poolCode}-schedule-r${revealTick}`),
+    [poolCode, revealTick],
+  );
 
   if (fixtures.length === 0) {
     return <p className="py-12 text-center text-sm text-paper/50">No fixtures for this pool yet.</p>;
@@ -177,7 +191,14 @@ export function FixturesGroupTable({
         <p className="px-3 py-2 text-[11px] font-bold uppercase tracking-widest text-electric">
           Match day — Round 1 & 2
         </p>
-        <ScheduleTable rows={onMatchDay} poolFixtures={poolFixtures} animating={animating} showContent={showContent} />
+        <ScheduleTable
+          rows={onMatchDay}
+          poolFixtures={poolFixtures}
+          animating={animating}
+          showContent={showContent}
+          rowDelayJitter={flavor.rowDelayJitter}
+          rowEase={flavor.ease}
+        />
       </div>
 
       {laterRounds.length > 0 ? (
@@ -190,6 +211,8 @@ export function FixturesGroupTable({
             poolFixtures={poolFixtures}
             animating={animating}
             showContent={showContent}
+            rowDelayJitter={flavor.rowDelayJitter}
+            rowEase={flavor.ease}
           />
         </div>
       ) : null}

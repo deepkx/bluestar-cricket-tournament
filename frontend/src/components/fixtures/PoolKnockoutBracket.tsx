@@ -11,6 +11,7 @@ import {
   BRACKET_ARROW_STAGGER_S,
   BRACKET_MATCH_DELAY_S,
 } from './fixturesRevealTiming';
+import { fixtureRevealFlavor, type FixtureRevealFlavor } from './fixturesRevealRandom';
 
 const { layout: LAYOUT, canvasW: CANVAS_W, canvasH: CANVAS_H } = buildBracketLayout();
 
@@ -152,11 +153,13 @@ function BracketArrows({
   revealActive,
   instant,
   delayOffsetS = 0,
+  flavor,
 }: {
   markerId: string;
   revealActive: boolean;
   instant: boolean;
   delayOffsetS?: number;
+  flavor: FixtureRevealFlavor;
 }) {
   const reduceMotion = useReducedMotion();
   const stroke = 'rgba(229,160,23,0.75)';
@@ -206,13 +209,21 @@ function BracketArrows({
             animate={{ pathLength: 1, opacity: 1 }}
             transition={{
               pathLength: {
-                duration: 0.55,
-                delay: delayOffsetS + BRACKET_ARROW_BASE_S + i * BRACKET_ARROW_STAGGER_S,
+                duration: 0.45 + (flavor.arrowJitter[i] ?? 0) + 0.12,
+                delay:
+                  delayOffsetS +
+                  BRACKET_ARROW_BASE_S +
+                  i * BRACKET_ARROW_STAGGER_S +
+                  (flavor.arrowJitter[i] ?? 0),
                 ease: 'easeOut',
               },
               opacity: {
                 duration: 0.25,
-                delay: delayOffsetS + BRACKET_ARROW_BASE_S + i * BRACKET_ARROW_STAGGER_S,
+                delay:
+                  delayOffsetS +
+                  BRACKET_ARROW_BASE_S +
+                  i * BRACKET_ARROW_STAGGER_S +
+                  (flavor.arrowJitter[i] ?? 0),
               },
             }}
             markerEnd={w.arrow ? `url(#${markerId})` : undefined}
@@ -229,30 +240,43 @@ function PlacedMatch({
   accent,
   revealActive,
   instant,
+  flavor,
 }: {
   node: BracketMatchNode | undefined;
   posKey: PosKey;
   accent: 'blue' | 'gold' | 'dim';
   revealActive: boolean;
   instant: boolean;
+  flavor: FixtureRevealFlavor;
 }) {
   const reduceMotion = useReducedMotion();
   if (!node) return null;
 
   const p = LAYOUT[posKey];
   const skipMotion = instant || !revealActive || reduceMotion;
-  const delay = BRACKET_MATCH_DELAY_S[posKey];
+  const revealMotion = flavor.matchMotion[posKey];
+  const delay = BRACKET_MATCH_DELAY_S[posKey] + revealMotion.delayJitter;
 
   return (
     <motion.div
       className="absolute z-20"
       style={{ left: p.x, top: p.y }}
-      initial={skipMotion ? false : { opacity: 0, scale: 0.88 }}
-      animate={{ opacity: 1, scale: 1 }}
+      initial={
+        skipMotion
+          ? false
+          : {
+              opacity: 0,
+              scale: revealMotion.scale,
+              rotate: revealMotion.rotate,
+              x: revealMotion.x,
+              y: revealMotion.y,
+            }
+      }
+      animate={{ opacity: 1, scale: 1, rotate: 0, x: 0, y: 0 }}
       transition={{
-        duration: 0.45,
+        duration: revealMotion.duration,
         delay: skipMotion ? 0 : Math.max(0, delay),
-        ease: [0.22, 1, 0.36, 1],
+        ease: flavor.ease,
       }}
     >
       <MatchBox node={node} accent={accent} posKey={posKey} />
@@ -291,6 +315,10 @@ export function PoolKnockoutBracket({
 
   const instant = revealed || !revealActive;
   const buildPhase = revealActive && !instant;
+  const flavor = useMemo(
+    () => fixtureRevealFlavor(`${poolCode}-r${revealTick}`),
+    [poolCode, revealTick],
+  );
   const matchDayLabel = useMemo(() => {
     const first = fixtures.find((f) => f.scheduledAt)?.scheduledAt;
     return first ? formatFixtureDate(first) : null;
@@ -306,9 +334,10 @@ export function PoolKnockoutBracket({
         {revealActive && !instant ? (
           <motion.div
             className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-floodlight/15 to-transparent"
-            initial={{ x: '-100%' }}
-            animate={{ x: '100%' }}
-            transition={{ duration: 1.1, ease: 'easeInOut' }}
+            style={{ skewX: `${flavor.sweep.skewDeg}deg` }}
+            initial={{ x: flavor.sweep.fromX }}
+            animate={{ x: flavor.sweep.toX }}
+            transition={{ duration: flavor.sweep.duration, ease: 'easeInOut' }}
           />
         ) : null}
         <p className="relative font-display text-2xl tracking-wide text-floodlight-bright sm:text-3xl">
@@ -373,10 +402,24 @@ export function PoolKnockoutBracket({
               <span>Final</span>
             </motion.div>
             <div className="relative" style={{ width: CANVAS_W, height: CANVAS_H, marginTop: 20 }}>
+              {buildPhase
+                ? flavor.sparkles.map((s, i) => (
+                    <motion.span
+                      key={i}
+                      className="pointer-events-none absolute z-[4] block h-2 w-2 rounded-full bg-floodlight-bright/70 blur-[1px]"
+                      style={{ left: `${s.leftPct}%`, top: `${s.topPct}%` }}
+                      initial={{ opacity: 0, scale: 0 }}
+                      animate={{ opacity: [0, 1, 0], scale: [0, s.scale, 0] }}
+                      transition={{ duration: 0.65, delay: s.delay, ease: 'easeOut' }}
+                      aria-hidden
+                    />
+                  ))
+                : null}
               <BracketArrows
                 markerId={`bracket-arr-${arrowMarkerId}`}
                 revealActive={buildPhase || (revealActive && instant)}
                 instant={instant || !buildPhase}
+                flavor={flavor}
               />
               {R1_KEYS.map((key, i) => (
                 <PlacedMatch
@@ -386,6 +429,7 @@ export function PoolKnockoutBracket({
                   accent="blue"
                   revealActive={revealActive}
                   instant={instant}
+                  flavor={flavor}
                 />
               ))}
               <PlacedMatch
@@ -394,6 +438,7 @@ export function PoolKnockoutBracket({
                 accent="gold"
                 revealActive={revealActive}
                 instant={instant}
+                flavor={flavor}
               />
               <PlacedMatch
                 node={model.r2.find((m) => m.matchNum === 2)}
@@ -401,6 +446,7 @@ export function PoolKnockoutBracket({
                 accent="gold"
                 revealActive={revealActive}
                 instant={instant}
+                flavor={flavor}
               />
               <PlacedMatch
                 node={model.r3.find((m) => m.matchNum === 1)}
@@ -408,6 +454,7 @@ export function PoolKnockoutBracket({
                 accent="gold"
                 revealActive={revealActive}
                 instant={instant}
+                flavor={flavor}
               />
               <PlacedMatch
                 node={model.r3.find((m) => m.matchNum === 2)}
@@ -415,6 +462,7 @@ export function PoolKnockoutBracket({
                 accent="gold"
                 revealActive={revealActive}
                 instant={instant}
+                flavor={flavor}
               />
               <PlacedMatch
                 node={model.final ?? undefined}
@@ -422,6 +470,7 @@ export function PoolKnockoutBracket({
                 accent="gold"
                 revealActive={revealActive}
                 instant={instant}
+                flavor={flavor}
               />
             </div>
           </div>
