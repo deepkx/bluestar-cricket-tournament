@@ -1,8 +1,10 @@
-import { useId } from 'react';
+import { useId, useMemo } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import type { BracketMatchNode, BracketSide, PoolBracketModel } from '../../utils/poolBracketModel';
-import { POOL_FIXTURE_META } from '../../utils/fixtureDisplay';
+import type { FixtureRow } from '../../data/pools';
+import { BracketScheduleFoot } from './BracketScheduleFoot';
+import { formatFixtureDate, POOL_FIXTURE_META } from '../../utils/fixtureDisplay';
 import { BRACKET_MATCH_W, buildBracketLayout, type BracketPosKey } from './bracketLayout';
 import {
   BRACKET_ARROW_BASE_S,
@@ -133,8 +135,8 @@ function MatchBox({
         <SideLine side={node.bottom} />
       </div>
       {node.kickoff ? (
-        <p className="border-t border-paper/15 bg-ink-deep px-3 py-2.5 text-center text-sm font-semibold tabular-nums text-paper/85">
-          {node.kickoff} IST
+        <p className="border-t border-paper/15 bg-ink-deep px-3 py-2.5 text-center text-xs font-semibold leading-snug tabular-nums text-paper/85 sm:text-sm">
+          {node.kickoff}
         </p>
       ) : node.dayNote ? (
         <p className="border-t border-paper/15 bg-ink-deep px-3 py-2.5 text-center text-sm font-medium text-paper/70">
@@ -149,10 +151,12 @@ function BracketArrows({
   markerId,
   revealActive,
   instant,
+  delayOffsetS = 0,
 }: {
   markerId: string;
   revealActive: boolean;
   instant: boolean;
+  delayOffsetS?: number;
 }) {
   const reduceMotion = useReducedMotion();
   const stroke = 'rgba(229,160,23,0.75)';
@@ -203,10 +207,13 @@ function BracketArrows({
             transition={{
               pathLength: {
                 duration: 0.55,
-                delay: BRACKET_ARROW_BASE_S + i * BRACKET_ARROW_STAGGER_S,
+                delay: delayOffsetS + BRACKET_ARROW_BASE_S + i * BRACKET_ARROW_STAGGER_S,
                 ease: 'easeOut',
               },
-              opacity: { duration: 0.25, delay: BRACKET_ARROW_BASE_S + i * BRACKET_ARROW_STAGGER_S },
+              opacity: {
+                duration: 0.25,
+                delay: delayOffsetS + BRACKET_ARROW_BASE_S + i * BRACKET_ARROW_STAGGER_S,
+              },
             }}
             markerEnd={w.arrow ? `url(#${markerId})` : undefined}
           />
@@ -231,6 +238,7 @@ function PlacedMatch({
 }) {
   const reduceMotion = useReducedMotion();
   if (!node) return null;
+
   const p = LAYOUT[posKey];
   const skipMotion = instant || !revealActive || reduceMotion;
   const delay = BRACKET_MATCH_DELAY_S[posKey];
@@ -239,11 +247,11 @@ function PlacedMatch({
     <motion.div
       className="absolute z-20"
       style={{ left: p.x, top: p.y }}
-      initial={skipMotion ? false : { opacity: 0, scale: 0.9, y: 10 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
+      initial={skipMotion ? false : { opacity: 0, scale: 0.88 }}
+      animate={{ opacity: 1, scale: 1 }}
       transition={{
-        duration: 0.42,
-        delay: skipMotion ? 0 : delay,
+        duration: 0.45,
+        delay: skipMotion ? 0 : Math.max(0, delay),
         ease: [0.22, 1, 0.36, 1],
       }}
     >
@@ -257,6 +265,7 @@ type SeedRow = { slotOrder: number; teamName: string | null };
 type Props = {
   poolCode: string;
   model: PoolBracketModel;
+  fixtures?: FixtureRow[];
   seeds?: SeedRow[];
   /** Live bracket build for this pool (fixtures reveal). */
   revealActive?: boolean;
@@ -265,9 +274,12 @@ type Props = {
   revealed?: boolean;
 };
 
+const R1_KEYS: PosKey[] = ['r1m1', 'r1m2', 'r1m3', 'r1m4'];
+
 export function PoolKnockoutBracket({
   poolCode,
   model,
+  fixtures = [],
   seeds = [],
   revealActive = false,
   revealTick = 0,
@@ -278,11 +290,17 @@ export function PoolKnockoutBracket({
   if (model.r1.length === 0) return null;
 
   const instant = revealed || !revealActive;
+  const buildPhase = revealActive && !instant;
+  const matchDayLabel = useMemo(() => {
+    const first = fixtures.find((f) => f.scheduledAt)?.scheduledAt;
+    return first ? formatFixtureDate(first) : null;
+  }, [fixtures]);
 
   return (
     <div
       key={revealActive ? `${poolCode}-${revealTick}` : poolCode}
-      className="overflow-hidden rounded-md border border-paper/15 border-t-0 bg-gradient-to-b from-turf/30 to-ink-deep"
+      data-capture-export
+      className="w-max min-w-full overflow-visible rounded-md border border-paper/15 border-t-0 bg-gradient-to-b from-turf/30 to-ink-deep"
     >
       <div className="relative overflow-hidden border-b border-paper/12 bg-ink-deep px-5 py-5 sm:px-8">
         {revealActive && !instant ? (
@@ -297,12 +315,18 @@ export function PoolKnockoutBracket({
           Pool {poolCode} knockout
         </p>
         <p className="mt-2 text-sm text-paper/55">
-          {meta?.dayLabel} · {meta?.startNote} · one arrow per advancing path
+          {matchDayLabel ? (
+            <>
+              <span className="font-medium text-paper/75">{matchDayLabel}</span>
+              <span className="text-paper/35"> · </span>
+            </>
+          ) : null}
+          {meta?.dayLabel} · {meta?.startNote}
         </p>
       </div>
 
-      <div className="overflow-x-auto p-5 sm:p-8">
-        <div className="mx-auto flex min-w-max gap-8">
+      <div className="overflow-visible p-5 sm:p-8">
+        <div className="mx-auto flex w-max min-w-max gap-8">
           {seeds.length > 0 ? (
             <motion.aside
               className="w-48 shrink-0 rounded-md border border-paper/15 bg-ink-deep sm:w-56"
@@ -351,37 +375,19 @@ export function PoolKnockoutBracket({
             <div className="relative" style={{ width: CANVAS_W, height: CANVAS_H, marginTop: 20 }}>
               <BracketArrows
                 markerId={`bracket-arr-${arrowMarkerId}`}
-                revealActive={revealActive}
-                instant={instant}
+                revealActive={buildPhase || (revealActive && instant)}
+                instant={instant || !buildPhase}
               />
-              <PlacedMatch
-                node={model.r1.find((m) => m.matchNum === 1)}
-                posKey="r1m1"
-                accent="blue"
-                revealActive={revealActive}
-                instant={instant}
-              />
-              <PlacedMatch
-                node={model.r1.find((m) => m.matchNum === 2)}
-                posKey="r1m2"
-                accent="blue"
-                revealActive={revealActive}
-                instant={instant}
-              />
-              <PlacedMatch
-                node={model.r1.find((m) => m.matchNum === 3)}
-                posKey="r1m3"
-                accent="blue"
-                revealActive={revealActive}
-                instant={instant}
-              />
-              <PlacedMatch
-                node={model.r1.find((m) => m.matchNum === 4)}
-                posKey="r1m4"
-                accent="blue"
-                revealActive={revealActive}
-                instant={instant}
-              />
+              {R1_KEYS.map((key, i) => (
+                <PlacedMatch
+                  key={key}
+                  node={model.r1.find((m) => m.matchNum === i + 1)}
+                  posKey={key}
+                  accent="blue"
+                  revealActive={revealActive}
+                  instant={instant}
+                />
+              ))}
               <PlacedMatch
                 node={model.r2.find((m) => m.matchNum === 1)}
                 posKey="r2m1"
@@ -421,6 +427,7 @@ export function PoolKnockoutBracket({
           </div>
         </div>
       </div>
+      <BracketScheduleFoot poolCode={poolCode} fixtures={fixtures} />
     </div>
   );
 }

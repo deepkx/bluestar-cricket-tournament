@@ -81,6 +81,12 @@ export function mapSiteConfigToTournament(cfg: SiteConfigRow): TournamentPublic 
 }
 
 export async function getCurrentTournament(): Promise<TournamentPublic> {
+  const sb = requireSupabase();
+  await sb.rpc('advance_publish_countdowns').then(({ error }) => {
+    if (error) {
+      /* migration 022 may not be applied yet */
+    }
+  });
   const cfg = await fetchSiteConfig();
   return mapSiteConfigToTournament(cfg);
 }

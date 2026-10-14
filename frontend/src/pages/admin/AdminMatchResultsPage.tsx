@@ -2,16 +2,24 @@ import { useEffect, useMemo, useState } from 'react';
 import { AdminShell } from '../../components/admin/AdminShell';
 import {
   adminLoadFixtures,
+  adminPatchShowdownTeams,
   adminSetFixtureWinner,
   POOL_CODES,
   type FixtureRow,
 } from '../../data/pools';
 import { fixtureDisplayOpponentB, fixtureMatchCode, fixtureOpponentA } from '../../utils/fixtureDisplay';
 import { fixtureWinnerName } from '../../utils/fixtureResults';
+import {
+  SHOWDOWN_TAB,
+  filterShowdownFixtures,
+  hydrateShowdownRow,
+  fixtureDisplayOpponentShowdown,
+} from '../../utils/showdownModel';
 import { apiErrorMessage } from '../../utils/errors';
 
-function canRecordResult(row: FixtureRow): boolean {
-  return Boolean(row.teamAId && row.teamBId);
+function canRecordResult(row: FixtureRow, all: FixtureRow[]): boolean {
+  const h = row.poolCode == null ? hydrateShowdownRow(row, all) : row;
+  return Boolean(h.teamAId && h.teamBId);
 }
 
 export function AdminMatchResultsPage() {
@@ -38,10 +46,12 @@ export function AdminMatchResultsPage() {
     void load();
   }, []);
 
-  const poolFixtures = useMemo(
-    () => fixtures.filter((f) => f.poolCode === pool).sort((a, b) => a.matchOrder - b.matchOrder),
-    [fixtures, pool],
-  );
+  const poolFixtures = useMemo(() => {
+    if (pool === SHOWDOWN_TAB) {
+      return filterShowdownFixtures(fixtures);
+    }
+    return fixtures.filter((f) => f.poolCode === pool).sort((a, b) => a.matchOrder - b.matchOrder);
+  }, [fixtures, pool]);
 
   const record = async (fixtureId: string, winnerTeamId: string | null) => {
     if (fixtureId.startsWith('new-')) {
@@ -52,6 +62,13 @@ export function AdminMatchResultsPage() {
     setError('');
     setSuccess('');
     try {
+      const raw = fixtures.find((f) => f.id === fixtureId);
+      if (raw && raw.poolCode == null) {
+        const h = hydrateShowdownRow(raw, fixtures);
+        if (h.teamAId && h.teamBId && (!raw.teamAId || !raw.teamBId)) {
+          await adminPatchShowdownTeams(fixtureId, h.teamAId, h.teamBId);
+        }
+      }
       await adminSetFixtureWinner(fixtureId, winnerTeamId);
       setFixtures((prev) =>
         prev.map((f) => {
@@ -80,7 +97,7 @@ export function AdminMatchResultsPage() {
       </p>
 
       <div className="mb-6 flex flex-wrap gap-1 border border-paper/15 bg-ink-deep/50">
-        {POOL_CODES.map((code) => (
+        {[...POOL_CODES, SHOWDOWN_TAB].map((code) => (
           <button
             key={code}
             type="button"
@@ -89,7 +106,7 @@ export function AdminMatchResultsPage() {
               pool === code ? 'bg-floodlight text-black' : 'text-paper/60 hover:bg-paper/5'
             }`}
           >
-            Pool {code}
+            {code === SHOWDOWN_TAB ? 'Showdown' : `Pool ${code}`}
           </button>
         ))}
       </div>
@@ -108,11 +125,15 @@ export function AdminMatchResultsPage() {
 
       <ul className="space-y-4">
         {poolFixtures.map((f) => {
+          const hydrated = f.poolCode == null ? hydrateShowdownRow(f, fixtures) : f;
           const code = fixtureMatchCode(f.label, f.matchOrder);
-          const teamA = fixtureOpponentA(f);
-          const teamB = fixtureDisplayOpponentB(f, poolFixtures);
+          const teamA = hydrated.teamAName ?? fixtureOpponentA(f);
+          const teamB =
+            f.poolCode == null
+              ? fixtureDisplayOpponentShowdown(f, fixtures)
+              : fixtureDisplayOpponentB(f, poolFixtures);
           const winner = fixtureWinnerName(f);
-          const playable = canRecordResult(f);
+          const playable = canRecordResult(f, fixtures);
 
           return (
             <li key={f.id} className="register-panel px-5 py-5">
@@ -141,17 +162,17 @@ export function AdminMatchResultsPage() {
                     type="button"
                     disabled={recordingId === f.id}
                     className={`btn-primary text-sm ${f.winnerTeamId === f.teamAId ? 'ring-2 ring-floodlight-bright' : ''}`}
-                    onClick={() => void record(f.id, f.teamAId!)}
+                    onClick={() => void record(f.id, hydrated.teamAId!)}
                   >
-                    {f.teamAName ?? teamA} won
+                    {teamA} won
                   </button>
                   <button
                     type="button"
                     disabled={recordingId === f.id}
                     className={`btn-primary text-sm ${f.winnerTeamId === f.teamBId ? 'ring-2 ring-floodlight-bright' : ''}`}
-                    onClick={() => void record(f.id, f.teamBId!)}
+                    onClick={() => void record(f.id, hydrated.teamBId!)}
                   >
-                    {f.teamBName ?? teamB} won
+                    {teamB} won
                   </button>
                   {f.winnerTeamId ? (
                     <button

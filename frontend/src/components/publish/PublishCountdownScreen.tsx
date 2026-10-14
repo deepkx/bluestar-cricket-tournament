@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { RevealCountdownBlock } from '../ui/RevealCountdownBlock';
-import { FixturesCountdownFinale } from './FixturesCountdownFinale';
+import { PublishCountdownFinale, type PublishFinaleMode } from './PublishCountdownFinale';
 
 type Props = {
   pageTitle: string;
@@ -9,8 +9,8 @@ type Props = {
   timezone: string;
   subline?: string;
   adminBar?: ReactNode;
-  /** Fixtures page: pulse + sweep in the last 10 seconds. */
-  fixturesFinale?: boolean;
+  /** Last-10s broadcast finale for pools or fixtures. */
+  finaleMode?: PublishFinaleMode;
 };
 
 /** Full-viewport countdown — no hero or other page chrome. */
@@ -21,7 +21,7 @@ export function PublishCountdownScreen({
   timezone,
   subline,
   adminBar,
-  fixturesFinale = false,
+  finaleMode,
 }: Props) {
   const block = (
     <RevealCountdownBlock
@@ -29,7 +29,8 @@ export function PublishCountdownScreen({
       timezone={timezone}
       headline={headline}
       subline={subline}
-      secondsEmphasis={fixturesFinale}
+      secondsEmphasis={Boolean(finaleMode)}
+      finaleMode={finaleMode}
     />
   );
 
@@ -37,10 +38,10 @@ export function PublishCountdownScreen({
     <div className="flex min-h-[min(100dvh,100vh)] flex-col items-center justify-center bg-ink-deep px-4 py-10">
       <p className="hud-label mb-6 text-floodlight-dim">{pageTitle}</p>
       <div className="w-full max-w-xl">
-        {fixturesFinale ? (
-          <FixturesCountdownFinale targetIso={targetIso} timezone={timezone}>
+        {finaleMode ? (
+          <PublishCountdownFinale targetIso={targetIso} timezone={timezone} mode={finaleMode}>
             {block}
-          </FixturesCountdownFinale>
+          </PublishCountdownFinale>
         ) : (
           block
         )}

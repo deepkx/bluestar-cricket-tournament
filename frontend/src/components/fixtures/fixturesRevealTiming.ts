@@ -17,11 +17,5 @@ export const BRACKET_ARROW_BASE_S = 1.05;
 export const BRACKET_ARROW_STAGGER_S = 0.1;
 export const BRACKET_ARROW_COUNT = 8;
 
-/** Schedule table fades in after R1–R2 bracket lands. */
-export const SCHEDULE_REVEAL_DELAY_MS = 2200;
-
 /** Time on each pool tab during live reveal. */
-export const POOL_REVEAL_MS = 4800;
-
-/** Name shuffle length for schedule rows during reveal. */
-export const FIXTURE_NAME_SHUFFLE_MS = 1600;
+export const POOL_REVEAL_MS = 6200;

@@ -1,10 +1,27 @@
-import { fetchSiteConfig, updateSiteConfig } from './tournament';
+import { requireSupabase } from '../lib/supabase';
 import type { PoolsFixturesBoardPhase, TeamsBoardPhase } from '../types/publish';
+import { fetchSiteConfig, updateSiteConfig } from './tournament';
 
-const COUNTDOWN_MINUTES = 5;
+/** Idempotent — flips countdown → animating when reveal time has passed (safe for all clients to call). */
+export async function advancePublishCountdowns(): Promise<void> {
+  const sb = requireSupabase();
+  const { error } = await sb.rpc('advance_publish_countdowns');
+  if (error) throw error;
+}
 
-function countdownIso(minutes = COUNTDOWN_MINUTES) {
-  return new Date(Date.now() + minutes * 60_000).toISOString();
+export const MIN_PUBLISH_COUNTDOWN_MINUTES = 1;
+export const DEFAULT_PUBLISH_COUNTDOWN_MINUTES = 5;
+export const MAX_PUBLISH_COUNTDOWN_MINUTES = 120;
+
+export function clampPublishCountdownMinutes(minutes: number): number {
+  const n = Math.round(Number(minutes));
+  if (!Number.isFinite(n)) return DEFAULT_PUBLISH_COUNTDOWN_MINUTES;
+  return Math.min(MAX_PUBLISH_COUNTDOWN_MINUTES, Math.max(MIN_PUBLISH_COUNTDOWN_MINUTES, n));
+}
+
+function countdownIso(minutes = DEFAULT_PUBLISH_COUNTDOWN_MINUTES) {
+  const m = clampPublishCountdownMinutes(minutes);
+  return new Date(Date.now() + m * 60_000).toISOString();
 }
 
 export async function adminSetTeamsBoardPhase(phase: TeamsBoardPhase) {
@@ -34,7 +51,7 @@ export async function adminSetFixturesBoardPhase(phase: PoolsFixturesBoardPhase)
   await updateSiteConfig(patch);
 }
 
-export async function adminStartPoolsCountdown(minutes = COUNTDOWN_MINUTES) {
+export async function adminStartPoolsCountdown(minutes = DEFAULT_PUBLISH_COUNTDOWN_MINUTES) {
   await updateSiteConfig({
     pools_reveal_at: countdownIso(minutes),
     pools_board_phase: 'countdown',
@@ -48,7 +65,7 @@ export async function adminStopPoolsCountdown() {
   });
 }
 
-export async function adminStartFixturesCountdown(minutes = COUNTDOWN_MINUTES) {
+export async function adminStartFixturesCountdown(minutes = DEFAULT_PUBLISH_COUNTDOWN_MINUTES) {
   await updateSiteConfig({
     fixtures_reveal_at: countdownIso(minutes),
     fixtures_board_phase: 'countdown',

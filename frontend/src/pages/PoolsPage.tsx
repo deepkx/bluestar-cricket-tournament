@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { CopyImageButton } from '../components/ui/CopyImageButton';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { PublicAdminPublishDock } from '../components/admin/PublicAdminPublishDock';
 import type { DrawTeamInfo } from '../components/draw/DrawTeamChip';
@@ -10,6 +11,7 @@ import { listConfirmedTeams } from '../data/teams';
 import { adminLoadPoolBoard, fetchPublicPools, POOL_CODES, type PoolBoard } from '../data/pools';
 import { adminSetPoolsBoardPhase } from '../data/sitePublish';
 import { useAdminSession } from '../hooks/useAdminSession';
+import { useAutoAdvanceCountdown } from '../hooks/useAutoAdvanceCountdown';
 import { useBoardDrawReveal } from '../hooks/useBoardDrawReveal';
 import { useSiteConfigPoll } from '../hooks/useSiteConfigPoll';
 import type { TeamPublic } from '../types/api';
@@ -37,6 +39,7 @@ export function PoolsPage() {
   const [poolsLoaded, setPoolsLoaded] = useState(false);
   const [teamsLoaded, setTeamsLoaded] = useState(false);
   const [drawRunKey, setDrawRunKey] = useState(0);
+  const poolBoardCaptureRef = useRef<HTMLDivElement>(null);
 
   const boardPhase = tournament?.poolsBoardPhase ?? 'idle';
   const timezone = tournament?.timezone ?? 'Asia/Kolkata';
@@ -44,12 +47,21 @@ export function PoolsPage() {
 
   const drawSessionKey = `bluestar-pools-reveal-r${tournament?.poolsDrawRun ?? 0}`;
 
-  const { phase, completeAnimation, replayAnimation, countdownLive, contentUnlocked } = useBoardDrawReveal({
+  const {
+    phase,
+    completeAnimation,
+    replayAnimation,
+    countdownLive,
+    countdownExpired,
+    contentUnlocked,
+  } = useBoardDrawReveal({
     revealIso,
     timezone,
     sessionKey: drawSessionKey,
     boardPhase,
   });
+
+  useAutoAdvanceCountdown(countdownExpired, boardPhase, refresh);
 
   const triggerServerAnimation = useCallback(() => {
     void adminSetPoolsBoardPhase('animating').then(() => {
@@ -116,7 +128,7 @@ export function PoolsPage() {
   );
 
   const drawReady = poolsLoaded && teamsLoaded && !loadErr;
-  const drawPlaying = phase === 'animating';
+  const drawPlaying = phase === 'animating' || boardPhase === 'animating';
   const adminBar = <PublicAdminPublishDock preset="pools" onUpdated={refresh} />;
 
   if (!tournament) {
@@ -133,6 +145,7 @@ export function PoolsPage() {
         targetIso={revealIso}
         timezone={timezone}
         adminBar={adminBar}
+        finaleMode="pools"
       />
     );
   }
@@ -175,7 +188,15 @@ export function PoolsPage() {
         {!showIdle && phase === 'revealed' ? (
           <div className="mt-8 sm:mt-10">
             {loadErr ? <p className="mb-6 text-center text-sm text-red-300">{loadErr}</p> : null}
-            <PoolDrawStaticGrid finalNamesByPool={finalNamesByPool} drawTeams={drawTeams} />
+            <div className="mb-3 flex justify-end">
+              <CopyImageButton
+                getTarget={() => poolBoardCaptureRef.current}
+                label="Copy pool image"
+              />
+            </div>
+            <div ref={poolBoardCaptureRef} className="rounded-md">
+              <PoolDrawStaticGrid finalNamesByPool={finalNamesByPool} drawTeams={drawTeams} />
+            </div>
             {isAdmin && !drawPlaying ? (
               <p className="mt-8 text-center">
                 <button type="button" className="btn-outline text-sm" onClick={() => triggerServerAnimation()}>

@@ -10,6 +10,10 @@ import {
   adminStartPoolsCountdown,
   adminStopFixturesCountdown,
   adminStopPoolsCountdown,
+  clampPublishCountdownMinutes,
+  DEFAULT_PUBLISH_COUNTDOWN_MINUTES,
+  MAX_PUBLISH_COUNTDOWN_MINUTES,
+  MIN_PUBLISH_COUNTDOWN_MINUTES,
 } from '../../data/sitePublish';
 import { apiErrorMessage } from '../../utils/errors';
 
@@ -23,9 +27,33 @@ type Props = {
   title?: string;
 };
 
+function CountdownMinutesField({
+  value,
+  onChange,
+}: {
+  value: number;
+  onChange: (minutes: number) => void;
+}) {
+  return (
+    <label className="flex items-center gap-2 text-xs text-paper/60">
+      <span className="whitespace-nowrap">Countdown</span>
+      <input
+        type="number"
+        className="form-field w-16 py-1.5 text-center text-sm tabular-nums"
+        min={MIN_PUBLISH_COUNTDOWN_MINUTES}
+        max={MAX_PUBLISH_COUNTDOWN_MINUTES}
+        value={value}
+        onChange={(e) => onChange(clampPublishCountdownMinutes(Number(e.target.value)))}
+      />
+      <span>min</span>
+    </label>
+  );
+}
+
 export function AdminPublishBar({ preset, onUpdated, className = '', title }: Props) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
+  const [countdownMinutes, setCountdownMinutes] = useState(DEFAULT_PUBLISH_COUNTDOWN_MINUTES);
 
   const run = async (fn: () => Promise<void>) => {
     setBusy(true);
@@ -63,7 +91,7 @@ export function AdminPublishBar({ preset, onUpdated, className = '', title }: Pr
   );
 
   const poolsControls = [
-    btn('Start countdown', adminStartPoolsCountdown),
+    btn('Start countdown', () => adminStartPoolsCountdown(countdownMinutes)),
     btn('Stop countdown', adminStopPoolsCountdown),
     btn('Start animation', () => adminSetPoolsBoardPhase('animating')),
     btn('Stop animation', () => adminSetPoolsBoardPhase('visible')),
@@ -71,7 +99,7 @@ export function AdminPublishBar({ preset, onUpdated, className = '', title }: Pr
   ];
 
   const fixturesControls = [
-    btn('Start countdown', adminStartFixturesCountdown),
+    btn('Start countdown', () => adminStartFixturesCountdown(countdownMinutes)),
     btn('Stop countdown', adminStopFixturesCountdown),
     btn('Start animation', () => adminSetFixturesBoardPhase('animating')),
     btn('Stop animation', () => adminSetFixturesBoardPhase('visible')),
@@ -92,12 +120,21 @@ export function AdminPublishBar({ preset, onUpdated, className = '', title }: Pr
   if (preset === 'pools-and-fixtures') {
     return (
       <div className={`space-y-4 ${className}`}>
-        <AdminPublishBarInner title="Public Pools page (/pools)" viewPath="/pools" buttons={poolsControls} err={err} />
+        <AdminPublishBarInner
+          title="Public Pools page (/pools)"
+          viewPath="/pools"
+          buttons={poolsControls}
+          err={err}
+          countdownMinutes={countdownMinutes}
+          onCountdownMinutesChange={setCountdownMinutes}
+        />
         <AdminPublishBarInner
           title="Public Fixtures page (/fixtures)"
           viewPath="/fixtures"
           buttons={fixturesControls}
           err={err}
+          countdownMinutes={countdownMinutes}
+          onCountdownMinutesChange={setCountdownMinutes}
         />
       </div>
     );
@@ -122,6 +159,11 @@ export function AdminPublishBar({ preset, onUpdated, className = '', title }: Pr
           </Link>
         ) : null}
       </div>
+      {preset !== 'teams' ? (
+        <div className="mt-3">
+          <CountdownMinutesField value={countdownMinutes} onChange={setCountdownMinutes} />
+        </div>
+      ) : null}
       <div className="mt-3 flex flex-wrap gap-2">{buttons}</div>
       {err ? <p className="mt-2 text-xs text-red-300">{err}</p> : null}
     </div>
@@ -133,12 +175,16 @@ function AdminPublishBarInner({
   viewPath,
   buttons,
   err,
+  countdownMinutes,
+  onCountdownMinutesChange,
   className = '',
 }: {
   title: string;
   viewPath: string;
   buttons: ReactNode[];
   err: string;
+  countdownMinutes: number;
+  onCountdownMinutesChange: (m: number) => void;
   className?: string;
 }) {
   return (
@@ -151,6 +197,9 @@ function AdminPublishBarInner({
         <Link to={viewPath} className="btn-primary shrink-0 text-xs sm:text-sm">
           Open page
         </Link>
+      </div>
+      <div className="mt-3">
+        <CountdownMinutesField value={countdownMinutes} onChange={onCountdownMinutesChange} />
       </div>
       <div className="mt-3 flex flex-wrap gap-2">{buttons}</div>
       {err ? <p className="mt-2 text-xs text-red-300">{err}</p> : null}

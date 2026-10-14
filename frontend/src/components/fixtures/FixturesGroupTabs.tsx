@@ -1,4 +1,6 @@
-const POOLS = ['A', 'B', 'C', 'D'] as const;
+import { SHOWDOWN_TAB } from '../../utils/showdownModel';
+
+const POOLS = ['A', 'B', 'C', 'D', SHOWDOWN_TAB] as const;
 
 type Props = {
   active: string;
@@ -40,7 +42,7 @@ export function FixturesGroupTabs({ active, onChange, counts, revealLocked = fal
                   : 'text-paper/60 hover:bg-paper/5 hover:text-paper'
             } ${revealPoolIndex !== undefined && POOLS.indexOf(code) === revealPoolIndex && !selected ? 'animate-pulse' : ''}`}
           >
-            Pool {code}
+            {code === SHOWDOWN_TAB ? 'Showdown' : `Pool ${code}`}
             {n > 0 ? (
               <span className={`ml-1.5 tabular-nums ${selected ? 'text-black/60' : 'text-paper/35'}`}>
                 ({n})

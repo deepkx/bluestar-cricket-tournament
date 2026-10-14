@@ -127,6 +127,15 @@ export async function adminLoadFixtures(): Promise<FixtureRow[]> {
   }));
 }
 
+export async function adminPatchShowdownTeams(fixtureId: string, teamAId: string, teamBId: string) {
+  const sb = requireSupabase();
+  const { error } = await sb
+    .from('tournament_fixtures')
+    .update({ team_a_id: teamAId, team_b_id: teamBId })
+    .eq('id', fixtureId);
+  if (error) throw error;
+}
+
 export async function adminSetFixtureWinner(fixtureId: string, winnerTeamId: string | null) {
   const sb = requireSupabase();
   const { error: rpcError } = await sb.rpc('set_fixture_winner', {
@@ -158,17 +167,20 @@ export async function adminSetFixtureWinner(fixtureId: string, winnerTeamId: str
 
 export async function adminSaveFixtures(fixtures: FixtureRow[]) {
   const sb = requireSupabase();
-  const { data: existing, error: listErr } = await sb.from('tournament_fixtures').select('id');
+  const { data: existing, error: listErr } = await sb
+    .from('tournament_fixtures')
+    .select('id, pool_code');
   if (listErr) throw listErr;
-  if (existing && existing.length > 0) {
-    const { error: delErr } = await sb.from('tournament_fixtures').delete().in(
-      'id',
-      existing.map((r) => r.id as string),
-    );
+  const poolIds = (existing ?? [])
+    .filter((r) => r.pool_code != null)
+    .map((r) => r.id as string);
+  if (poolIds.length > 0) {
+    const { error: delErr } = await sb.from('tournament_fixtures').delete().in('id', poolIds);
     if (delErr) throw delErr;
   }
-  if (fixtures.length === 0) return;
-  const payload = fixtures.map((f, i) => ({
+  const poolOnly = fixtures.filter((f) => f.poolCode != null);
+  if (poolOnly.length === 0) return;
+  const payload = poolOnly.map((f, i) => ({
     pool_code: f.poolCode,
     match_order: f.matchOrder ?? i + 1,
     label: f.label,

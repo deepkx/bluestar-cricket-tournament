@@ -1,5 +1,5 @@
 import type { FixtureRow } from '../data/pools';
-import { fixtureOpponentA, fixtureOpponentB, formatFixtureKickoff } from './fixtureDisplay';
+import { fixtureOpponentA, fixtureOpponentB, formatFixtureTimeWindow } from './fixtureDisplay';
 import {
   findFixtureByRoundMatch,
   fixtureSideEliminated,
@@ -68,7 +68,7 @@ function sidesFromFixture(
       title: `R1 · M${matchNum}`,
       top: side(a, 'team', fixtureSideEliminated(row, 'A', fixtures)),
       bottom: side(b, 'team', fixtureSideEliminated(row, 'B', fixtures)),
-      kickoff: row.scheduledAt ? formatFixtureKickoff(row.scheduledAt) : null,
+      kickoff: row.scheduledAt ? formatFixtureTimeWindow(row.scheduledAt) : null,
       dayNote: null,
     };
   }
@@ -87,7 +87,7 @@ function sidesFromFixture(
       bottom: row.teamBName
         ? side(row.teamBName, 'team', fixtureSideEliminated(row, 'B', fixtures))
         : resolvedOrWinnerSide(fixtures, ref),
-      kickoff: row.scheduledAt ? formatFixtureKickoff(row.scheduledAt) : null,
+      kickoff: row.scheduledAt ? formatFixtureTimeWindow(row.scheduledAt) : null,
       dayNote: null,
     };
   }
@@ -106,8 +106,8 @@ function sidesFromFixture(
       title: `R3 · M${matchNum}`,
       top: resolvedOrWinnerSide(fixtures, refs.top),
       bottom: resolvedOrWinnerSide(fixtures, refs.bottom),
-      kickoff: null,
-      dayNote: 'Another day',
+      kickoff: row.scheduledAt ? formatFixtureTimeWindow(row.scheduledAt) : null,
+      dayNote: row.scheduledAt ? null : 'Another day',
     };
   }
 
@@ -118,8 +118,8 @@ function sidesFromFixture(
     title: 'R4 · Final',
     top: resolvedOrWinnerSide(fixtures, 'R3-M1'),
     bottom: resolvedOrWinnerSide(fixtures, 'R3-M2'),
-    kickoff: null,
-    dayNote: 'Another day',
+    kickoff: row.scheduledAt ? formatFixtureTimeWindow(row.scheduledAt) : null,
+    dayNote: row.scheduledAt ? null : 'Another day',
   };
 }
 

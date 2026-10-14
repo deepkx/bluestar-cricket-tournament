@@ -15,6 +15,8 @@ type Props = {
   expiredMessage?: string;
   showFixturesLinkWhenExpired?: boolean;
   finalePulse?: boolean;
+  /** In finale: hide days/hours/minutes so seconds hero sits above. */
+  finaleCompact?: boolean;
 };
 
 export function CountdownDisplay({
@@ -30,6 +32,7 @@ export function CountdownDisplay({
   expiredMessage = 'Underway',
   showFixturesLinkWhenExpired = true,
   finalePulse = false,
+  finaleCompact = false,
 }: Props) {
   const cd = useCountdown(targetIso, timezone);
   const fg = dark ? 'text-ink' : 'text-paper';
@@ -58,12 +61,14 @@ export function CountdownDisplay({
 
   if (!cd) return null;
 
-  const parts = [
-    { v: cd.days, l: 'd', key: 'd' },
-    { v: cd.hours, l: 'h', key: 'h' },
-    { v: cd.minutes, l: 'm', key: 'm' },
-    { v: cd.seconds, l: 's', key: 's', animate: true },
-  ];
+  const parts = finaleCompact
+    ? [{ v: cd.seconds, l: 's', key: 's', animate: true }]
+    : [
+        { v: cd.days, l: 'd', key: 'd' },
+        { v: cd.hours, l: 'h', key: 'h' },
+        { v: cd.minutes, l: 'm', key: 'm' },
+        { v: cd.seconds, l: 's', key: 's', animate: true },
+      ];
 
   const digitSize = large
     ? size === 'section'
@@ -112,8 +117,8 @@ export function CountdownDisplay({
                     animate={{ y: 0, opacity: 1, scale: finalePulse && p.key === 's' ? [1.08, 1.2, 1.08] : 1 }}
                     exit={{ y: -12, opacity: 0 }}
                     transition={{
-                      duration: finalePulse && p.key === 's' ? 0.45 : 0.2,
-                      repeat: finalePulse && p.key === 's' ? Infinity : 0,
+                      duration: finalePulse && p.key === 's' ? 0.28 : 0.2,
+                      repeat: 0,
                     }}
                   >
                     {String(p.v).padStart(2, '0')}

@@ -151,7 +151,8 @@ export function PoolDrawFinalScoreboard({ finalNamesByPool, drawTeams }: FinalPr
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.45 }}
-      className="overflow-hidden rounded-md border border-paper/12 bg-ink-deep/80"
+      data-capture-export
+      className="w-max min-w-full overflow-visible rounded-md border border-paper/12 bg-ink-deep/80"
     >
       <header className="border-b border-paper/10 px-5 py-5 sm:px-8 sm:py-6">
         <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-floodlight-dim">Tournament draw</p>

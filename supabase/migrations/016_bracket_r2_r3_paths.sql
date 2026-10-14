@@ -11,8 +11,8 @@ WHERE f.label LIKE 'R2 · M1%'
   AND t10.normalized_name = normalize_team_name(
     CASE f.pool_code
       WHEN 'A' THEN 'Bluestar B'
-      WHEN 'B' THEN 'Neyveli Titans'
-      WHEN 'C' THEN 'SR Independence'
+      WHEN 'B' THEN 'SR Independence'
+      WHEN 'C' THEN 'Neyveli Titans'
       WHEN 'D' THEN 'Black Booster'
       ELSE ''
     END
@@ -27,8 +27,8 @@ WHERE f.label LIKE 'R2 · M2%'
   AND t1.normalized_name = normalize_team_name(
     CASE f.pool_code
       WHEN 'A' THEN 'Luminous Lions'
-      WHEN 'B' THEN 'College Birds'
-      WHEN 'C' THEN 'Sharkzz'
+      WHEN 'B' THEN 'Sharkzz'
+      WHEN 'C' THEN 'College Birds'
       WHEN 'D' THEN 'YDK'
       ELSE ''
     END

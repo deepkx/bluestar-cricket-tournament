@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState } from 'react';
+import { Fragment } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import type { FixtureRow } from '../../data/pools';
@@ -11,13 +11,7 @@ import {
   formatFixtureTimeWindow,
   POOL_FIXTURE_META,
 } from '../../utils/fixtureDisplay';
-import { FIXTURE_NAME_SHUFFLE_MS, SCHEDULE_REVEAL_DELAY_MS } from './fixturesRevealTiming';
 import { fixtureSideEliminated } from '../../utils/fixtureResults';
-
-function pickRandom(names: string[]): string {
-  if (names.length === 0) return 'TBD';
-  return names[Math.floor(Math.random() * names.length)] ?? 'TBD';
-}
 
 function TeamName({
   name,
@@ -54,68 +48,10 @@ function TeamName({
   );
 }
 
-function FixtureMatchup({
-  animating,
-  decoyNames,
-  revealDelayMs,
-  teamA,
-  teamB,
-  eliminatedA,
-  eliminatedB,
-}: {
-  animating: boolean;
-  decoyNames: string[];
-  revealDelayMs: number;
-  teamA: string;
-  teamB: string;
-  eliminatedA?: boolean;
-  eliminatedB?: boolean;
-}) {
-  const [a, setA] = useState(teamA);
-  const [b, setB] = useState(teamB);
-
-  useEffect(() => {
-    if (!animating) {
-      setA(teamA);
-      setB(teamB);
-      return;
-    }
-    setA(pickRandom(decoyNames));
-    setB(pickRandom(decoyNames));
-    let tick: number | undefined;
-    const start = window.setTimeout(() => {
-      tick = window.setInterval(() => {
-        setA(pickRandom(decoyNames));
-        setB(pickRandom(decoyNames));
-      }, 85);
-    }, revealDelayMs);
-    const done = window.setTimeout(() => {
-      if (tick) window.clearInterval(tick);
-      setA(teamA);
-      setB(teamB);
-    }, revealDelayMs + FIXTURE_NAME_SHUFFLE_MS);
-    return () => {
-      window.clearTimeout(start);
-      window.clearTimeout(done);
-      if (tick) window.clearInterval(tick);
-    };
-  }, [animating, decoyNames, teamA, teamB, revealDelayMs]);
-
-  return (
-    <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
-      <TeamName name={a} animating={animating} eliminated={eliminatedA} />
-      <span className="text-xs font-semibold uppercase tracking-wider text-paper/40">vs</span>
-      <TeamName name={b} animating={animating} eliminated={eliminatedB} />
-    </span>
-  );
-}
-
 type Props = {
   poolCode: string;
   fixtures: FixtureRow[];
   animating: boolean;
-  decoyNames: string[];
-  sectionIndex: number;
   revealed: boolean;
   revealTick?: number;
   poolFixtures?: FixtureRow[];
@@ -139,18 +75,12 @@ function ScheduleTable({
   rows,
   poolFixtures,
   animating,
-  decoyNames,
-  sectionIndex,
   showContent,
-  revealed,
 }: {
   rows: FixtureRow[];
   poolFixtures: FixtureRow[];
   animating: boolean;
-  decoyNames: string[];
-  sectionIndex: number;
   showContent: boolean;
-  revealed: boolean;
 }) {
   return (
     <table className="w-full min-w-[720px] border-collapse text-base">
@@ -195,15 +125,11 @@ function ScheduleTable({
                   {formatFixtureTimeWindow(row.scheduledAt)}
                 </td>
                 <td className="px-5 py-5 text-lg leading-snug">
-                  <FixtureMatchup
-                    animating={animating && !revealed}
-                    decoyNames={decoyNames}
-                    revealDelayMs={sectionIndex * 400 + i * 90}
-                    teamA={teamA}
-                    teamB={teamB}
-                    eliminatedA={eliminatedA}
-                    eliminatedB={eliminatedB}
-                  />
+                  <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <TeamName name={teamA} animating={false} eliminated={eliminatedA} />
+                    <span className="text-xs font-semibold uppercase tracking-wider text-paper/40">vs</span>
+                    <TeamName name={teamB} animating={false} eliminated={eliminatedB} />
+                  </span>
                   {row.venue ? <p className="mt-1 text-xs text-paper/45">{row.venue}</p> : null}
                 </td>
               </motion.tr>
@@ -219,25 +145,11 @@ export function FixturesGroupTable({
   poolCode,
   fixtures,
   animating,
-  decoyNames,
-  sectionIndex,
   revealed,
-  revealTick = 0,
   poolFixtures = fixtures,
 }: Props) {
   const meta = POOL_FIXTURE_META[poolCode] ?? { dayLabel: '', startNote: '', matchMinutes: 45 };
   const showContent = revealed || !animating;
-  const [scheduleVisible, setScheduleVisible] = useState(!animating || revealed);
-
-  useEffect(() => {
-    if (!animating || revealed) {
-      setScheduleVisible(true);
-      return;
-    }
-    setScheduleVisible(false);
-    const id = window.setTimeout(() => setScheduleVisible(true), SCHEDULE_REVEAL_DELAY_MS);
-    return () => window.clearTimeout(id);
-  }, [animating, revealed, poolCode, revealTick]);
 
   if (fixtures.length === 0) {
     return <p className="py-12 text-center text-sm text-paper/50">No fixtures for this pool yet.</p>;
@@ -248,12 +160,10 @@ export function FixturesGroupTable({
 
   return (
     <motion.div
-      className="overflow-hidden border border-paper/15 bg-turf/10"
-      initial={false}
-      animate={{
-        opacity: scheduleVisible ? 1 : 0,
-        y: scheduleVisible ? 0 : 12,
-      }}
+      data-capture-export
+      className="w-max min-w-full overflow-visible border border-paper/15 bg-turf/10"
+      initial={animating && !revealed ? { opacity: 0, y: 12 } : false}
+      animate={{ opacity: showContent ? 1 : 0.35, y: 0 }}
       transition={{ duration: 0.45, ease: 'easeOut' }}
     >
       <div className="border-b border-paper/12 bg-ink-deep/60 px-4 py-3 sm:px-6">
@@ -263,23 +173,15 @@ export function FixturesGroupTable({
         </p>
       </div>
 
-      <div className="overflow-x-auto p-1">
+      <div className="overflow-visible p-1">
         <p className="px-3 py-2 text-[11px] font-bold uppercase tracking-widest text-electric">
           Match day — Round 1 & 2
         </p>
-        <ScheduleTable
-          rows={onMatchDay}
-          poolFixtures={poolFixtures}
-          animating={animating}
-          decoyNames={decoyNames}
-          sectionIndex={sectionIndex}
-          showContent={showContent}
-          revealed={revealed}
-        />
+        <ScheduleTable rows={onMatchDay} poolFixtures={poolFixtures} animating={animating} showContent={showContent} />
       </div>
 
       {laterRounds.length > 0 ? (
-        <div className="overflow-x-auto border-t border-paper/12 bg-ink-deep/30 p-1">
+        <div className="overflow-visible border-t border-paper/12 bg-ink-deep/30 p-1">
           <p className="px-3 py-2 text-xs font-bold uppercase tracking-widest text-paper/55">
             Later — Round 3 & final
           </p>
@@ -287,10 +189,7 @@ export function FixturesGroupTable({
             rows={laterRounds}
             poolFixtures={poolFixtures}
             animating={animating}
-            decoyNames={decoyNames}
-            sectionIndex={sectionIndex}
             showContent={showContent}
-            revealed={revealed}
           />
         </div>
       ) : null}

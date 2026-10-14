@@ -93,6 +93,9 @@ export function fixtureRoundTag(label: string | null): string {
 export function fixtureMatchCode(label: string | null, rowIndex: number): string {
   const code = label?.match(/^(R\d+ · M\d+)/);
   if (code) return code[1];
+  const semi = label?.match(/^(Semi \d+)/);
+  if (semi) return semi[1];
+  if (label?.startsWith('Final · Winner Semi')) return 'Final';
   if (label?.includes('Final')) return 'R4 · Final';
   return `Match ${rowIndex}`;
 }
@@ -103,7 +106,8 @@ export function groupFixturesByPool(rows: FixtureRow[]): Map<string, FixtureRow[
     map.set(code, []);
   }
   for (const row of rows) {
-    const code = row.poolCode ?? '?';
+    if (row.poolCode == null) continue;
+    const code = row.poolCode;
     const list = map.get(code) ?? [];
     list.push(row);
     map.set(code, list);

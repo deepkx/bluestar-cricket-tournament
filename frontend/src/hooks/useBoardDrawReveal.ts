@@ -34,12 +34,19 @@ export function useBoardDrawReveal({ revealIso, timezone, sessionKey, boardPhase
       return;
     }
     const forcedAnim = boardPhase === 'animating';
-    if (!forcedAnim && typeof sessionStorage !== 'undefined' && sessionStorage.getItem(sessionKey) === '1') {
+    const countdownHandoff =
+      boardPhase === 'countdown' && countdownExpired && revealIso;
+    if (
+      !forcedAnim &&
+      !countdownHandoff &&
+      typeof sessionStorage !== 'undefined' &&
+      sessionStorage.getItem(sessionKey) === '1'
+    ) {
       setPhase('revealed');
       return;
     }
     setPhase('animating');
-  }, [contentUnlocked, boardPhase, sessionKey, countdownExpired]);
+  }, [contentUnlocked, boardPhase, sessionKey, countdownExpired, revealIso]);
 
   const completeAnimation = useCallback(() => {
     if (contentUnlocked && boardPhase !== 'visible') {

@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { useReducedMotion } from 'framer-motion';
 import { POOL_REVEAL_MS } from '../components/fixtures/fixturesRevealTiming';
 
-const POOL_ORDER = ['A', 'B', 'C', 'D'] as const;
+const POOL_ORDER = ['A', 'B', 'C', 'D', 'showdown'] as const;
+export type FixturesRevealSection = (typeof POOL_ORDER)[number];
 
 export function useFixturesPoolReveal(animating: boolean) {
   const reduceMotion = useReducedMotion();
@@ -15,8 +16,12 @@ export function useFixturesPoolReveal(animating: boolean) {
       return;
     }
     setPoolIndex(0);
-    setRevealTick((t) => t + 1);
   }, [animating, reduceMotion]);
+
+  useEffect(() => {
+    if (!animating || reduceMotion) return;
+    setRevealTick((t) => t + 1);
+  }, [animating, reduceMotion, poolIndex]);
 
   useEffect(() => {
     if (!animating || reduceMotion) return;
@@ -25,7 +30,7 @@ export function useFixturesPoolReveal(animating: boolean) {
     return () => window.clearTimeout(id);
   }, [animating, reduceMotion, poolIndex]);
 
-  const activePool = POOL_ORDER[poolIndex] ?? 'A';
+  const activePool: FixturesRevealSection = POOL_ORDER[poolIndex] ?? 'A';
   const isLastPool = poolIndex >= POOL_ORDER.length - 1;
 
   return {
