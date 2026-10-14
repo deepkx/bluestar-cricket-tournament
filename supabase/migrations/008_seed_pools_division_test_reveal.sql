@@ -180,7 +180,7 @@ FROM (VALUES
   ('B', 10, 'Sharkzz'),
   ('C', 1, '11 Star'),
   ('C', 2, 'Captains XI CC'),
-  ('C', 3, 'FCC'),
+  ('C', 3, 'Hi-Flyers'),
   ('C', 4, 'Pheonix'),
   ('C', 5, 'Thunder CC'),
   ('C', 6, 'Madmasters'),
@@ -197,7 +197,7 @@ FROM (VALUES
   ('D', 7, 'Game Changer'),
   ('D', 8, 'Black Booster'),
   ('D', 9, 'Neyveli Titans'),
-  ('D', 10, 'Empty Boys')
+  ('D', 10, 'Luminous Lions')
 ) AS v(pool_code, slot_order, team_name)
 JOIN teams t ON t.normalized_name = normalize_team_name(v.team_name)
 ON CONFLICT (pool_code, slot_order) DO UPDATE SET team_id = EXCLUDED.team_id;

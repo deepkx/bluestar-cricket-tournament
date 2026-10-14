@@ -99,7 +99,7 @@ VALUES
   ('Sharkzz', 'Captain', '8675274463', 20, 'confirmed', now()),
   ('11 Star', 'Captain', '8778351582', 21, 'confirmed', now()),
   ('Captains XI CC', 'Captain', '9940806933', 22, 'confirmed', now()),
-  ('FCC', 'Captain', '6369392972', 23, 'confirmed', now()),
+  ('Hi-Flyers', 'Captain', '6369392972', 23, 'confirmed', now()),
   ('Pheonix', 'Captain', '6380634397', 24, 'confirmed', now()),
   ('Thunder CC', 'Captain', '7010031315', 25, 'confirmed', now()),
   ('Madmasters', 'Captain', '8072549895', 26, 'confirmed', now()),
@@ -116,7 +116,7 @@ VALUES
   ('Game Changer', 'Captain', '6369144843', 37, 'confirmed', now()),
   ('Black Booster', 'Captain', '9626529034', 38, 'confirmed', now()),
   ('Neyveli Titans', 'Captain', '9360066103', 39, 'confirmed', now()),
-  ('Empty Boys', 'Captain', '7538830821', 40, 'confirmed', now())
+  ('Luminous Lions', 'Captain', '7538830821', 40, 'confirmed', now())
 ON CONFLICT (normalized_name) DO UPDATE SET
   captain_phone_digits = excluded.captain_phone_digits,
   sort_order = excluded.sort_order,
