@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import type { BracketMatchNode, BracketSide, PoolBracketModel } from '../../utils/poolBracketModel';
 import type { FixtureRow } from '../../data/pools';
 import { BracketScheduleFoot } from './BracketScheduleFoot';
-import { formatFixtureDate, POOL_FIXTURE_META } from '../../utils/fixtureDisplay';
+import { fixturePoolMatchDayLabel, POOL_FIXTURE_META } from '../../utils/fixtureDisplay';
 import { BRACKET_MATCH_W, buildBracketLayout, type BracketPosKey } from './bracketLayout';
 import {
   BRACKET_ARROW_BASE_S,
@@ -447,10 +447,7 @@ export function PoolKnockoutBracket({
     shortKnockout,
   });
   const pickDone = !pickMode || teamPick.done;
-  const matchDayLabel = useMemo(() => {
-    const first = fixtures.find((f) => f.scheduledAt)?.scheduledAt;
-    return first ? formatFixtureDate(first) : null;
-  }, [fixtures]);
+  const matchDayLabel = fixturePoolMatchDayLabel(poolCode);
 
   return (
     <div
@@ -472,13 +469,9 @@ export function PoolKnockoutBracket({
           Pool {poolCode} knockout
         </p>
         <p className="mt-2 text-sm text-paper/55">
-          {matchDayLabel ? (
-            <>
-              <span className="font-medium text-paper/75">{matchDayLabel}</span>
-              <span className="text-paper/35"> · </span>
-            </>
-          ) : null}
-          {meta?.dayLabel} · {meta?.startNote}
+          <span className="font-medium text-paper/75">{matchDayLabel}</span>
+          <span className="text-paper/35"> · </span>
+          {meta?.startNote}
         </p>
       </div>
 

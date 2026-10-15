@@ -8,8 +8,8 @@ import {
   fixtureDisplayOpponentA,
   fixtureDisplayOpponentB,
   fixtureMatchCode,
+  fixturePoolMatchDayLabel,
   fixtureRoundTag,
-  formatFixtureDate,
   formatFixtureTimeWindow,
   POOL_FIXTURE_META,
 } from '../../utils/fixtureDisplay';
@@ -94,6 +94,7 @@ function RoundBadge({ label }: { label: string | null }) {
 }
 
 function ScheduleTable({
+  matchDayLabel,
   rows,
   poolFixtures,
   animating,
@@ -103,6 +104,7 @@ function ScheduleTable({
   scheduleTeamSlots,
   teamReveal,
 }: {
+  matchDayLabel?: string | null;
   rows: FixtureRow[];
   poolFixtures: FixtureRow[];
   animating: boolean;
@@ -122,14 +124,18 @@ function ScheduleTable({
         </tr>
       </thead>
       <tbody>
+        {matchDayLabel && rows.length > 0 ? (
+          <tr className="border-b border-paper/10 bg-floodlight/10">
+            <td colSpan={3} className="px-4 py-2 text-xs font-bold uppercase tracking-widest text-floodlight-bright">
+              {matchDayLabel}
+            </td>
+          </tr>
+        ) : null}
         {rows.map((row, i) => {
           const teamA = fixtureDisplayOpponentA(row, poolFixtures);
           const teamB = fixtureDisplayOpponentB(row, poolFixtures);
           const eliminatedA = fixtureSideEliminated(row, 'A', poolFixtures);
           const eliminatedB = fixtureSideEliminated(row, 'B', poolFixtures);
-          const dateKey = formatFixtureDate(row.scheduledAt);
-          const prevDate = i > 0 ? formatFixtureDate(rows[i - 1]?.scheduledAt ?? null) : null;
-          const showDateHeader = dateKey !== prevDate;
           const code = fixtureMatchCode(row.label, i + 1);
           const teamSlotA = scheduleTeamSlots[(i * 2) % scheduleTeamSlots.length];
           const teamSlotB = scheduleTeamSlots[(i * 2 + 1) % scheduleTeamSlots.length];
@@ -137,13 +143,6 @@ function ScheduleTable({
 
           return (
             <Fragment key={row.id}>
-              {showDateHeader ? (
-                <tr className="border-b border-paper/10 bg-floodlight/10">
-                  <td colSpan={3} className="px-4 py-2 text-xs font-bold uppercase tracking-widest text-floodlight-bright">
-                    {dateKey}
-                  </td>
-                </tr>
-              ) : null}
               <motion.tr
                 className="border-b border-paper/8 odd:bg-ink-deep/20"
                 initial={animating ? { opacity: 0, x: (rowDelayJitter[i % rowDelayJitter.length] ?? 0) * 40 } : false}
@@ -237,6 +236,7 @@ export function FixturesGroupTable({
           Match day — Round 1 & 2
         </p>
         <ScheduleTable
+          matchDayLabel={fixturePoolMatchDayLabel(poolCode)}
           rows={onMatchDay}
           poolFixtures={poolFixtures}
           animating={animating}
@@ -256,6 +256,7 @@ export function FixturesGroupTable({
           <ScheduleTable
             rows={laterRounds}
             poolFixtures={poolFixtures}
+            matchDayLabel={null}
             animating={animating}
             showContent={showContent}
             rowDelayJitter={flavor.rowDelayJitter}
