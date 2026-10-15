@@ -426,8 +426,6 @@ export function PoolKnockoutBracket({
 }: Props) {
   const arrowMarkerId = useId().replace(/:/g, '');
   const meta = POOL_FIXTURE_META[poolCode];
-  if (model.r1.length === 0) return null;
-
   const instant = revealed || !revealActive;
   const buildPhase = revealActive && !instant;
   const shortKnockout = isShortKnockoutPool(poolCode);
@@ -448,6 +446,14 @@ export function PoolKnockoutBracket({
   });
   const pickDone = !pickMode || teamPick.done;
   const matchDayLabel = fixturePoolMatchDayLabel(poolCode);
+
+  if (model.r1.length === 0) {
+    return (
+      <div className="rounded-md border border-paper/15 bg-turf/10 px-6 py-12 text-center text-sm text-paper/50">
+        Pool {poolCode} bracket is not ready yet.
+      </div>
+    );
+  }
 
   return (
     <div
