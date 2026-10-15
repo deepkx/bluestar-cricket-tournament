@@ -16,11 +16,18 @@ export const POOL_FIXTURE_META: Record<
 
 /** Canonical IST match-day anchor per pool (Sat 18 / Sun 19 Oct 2026). Used for labels, not kickoff times. */
 export const POOL_MATCH_DAY_START_ISO: Record<string, string> = {
-  B: '2026-10-18T02:30:00+00',
-  C: '2026-10-18T07:00:00+00',
-  A: '2026-10-19T02:30:00+00',
-  D: '2026-10-19T07:00:00+00',
+  B: '2026-10-18T02:30:00+00:00',
+  C: '2026-10-18T07:00:00+00:00',
+  A: '2026-10-19T02:30:00+00:00',
+  D: '2026-10-19T07:00:00+00:00',
 };
+
+function parseFixtureInstant(startIso: string | null | undefined): Date | null {
+  if (!startIso) return null;
+  const normalized = startIso.replace(/([+-]\d{2})$/, '$1:00');
+  const d = new Date(normalized);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
 
 export function fixturePoolMatchDayLabel(poolCode: string): string {
   const iso = POOL_MATCH_DAY_START_ISO[poolCode];
@@ -33,29 +40,31 @@ export function isPoolRound12Row(row: FixtureRow): boolean {
 }
 
 export function formatFixtureDate(startIso: string | null): string {
-  if (!startIso) return 'TBC';
+  const start = parseFixtureInstant(startIso);
+  if (!start) return 'TBC';
   return new Intl.DateTimeFormat('en-IN', {
     timeZone: TZ,
     weekday: 'short',
     day: 'numeric',
     month: 'short',
     year: 'numeric',
-  }).format(new Date(startIso));
+  }).format(start);
 }
 
 export function formatFixtureKickoff(startIso: string | null): string {
-  if (!startIso) return '—';
+  const start = parseFixtureInstant(startIso);
+  if (!start) return '—';
   return new Intl.DateTimeFormat('en-IN', {
     timeZone: TZ,
     hour: 'numeric',
     minute: '2-digit',
     hour12: true,
-  }).format(new Date(startIso));
+  }).format(start);
 }
 
 export function formatFixtureTimeWindow(startIso: string | null, durationMs = MATCH_DURATION_MS): string {
-  if (!startIso) return 'TBC';
-  const start = new Date(startIso);
+  const start = parseFixtureInstant(startIso);
+  if (!start) return 'TBC';
   const end = new Date(start.getTime() + durationMs);
   const fmt = new Intl.DateTimeFormat('en-IN', {
     timeZone: TZ,
