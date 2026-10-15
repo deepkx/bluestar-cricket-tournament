@@ -1,4 +1,4 @@
--- Re-apply R1/R2 kickoffs: Sat 18 Oct — B (8AM), C (12:30PM); Sun 19 Oct — A (8AM), D (12:30PM).
+-- Re-apply R1/R2 kickoffs: Sat 17 Oct — B (8AM), C (12:30PM); Sun 18 Oct — A (8AM), D (12:30PM). (See 040 for calendar fix.)
 -- Idempotent; fixes prod if dates were swapped or migration 029 was skipped.
 
 UPDATE tournament_fixtures SET scheduled_at = '2026-10-18T02:30:00+00' WHERE pool_code = 'B' AND label LIKE 'R1 · M1%';
