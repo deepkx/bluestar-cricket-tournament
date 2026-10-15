@@ -32,16 +32,16 @@ FROM (VALUES
   ('C', 7, 'Team Titan'),
   ('C', 8, 'Smashers'),
   ('C', 9, 'Bluestar B'),
-  ('D', 1, 'YDK'),
-  ('D', 2, 'Sports Star'),
-  ('D', 3, 'Fearless'),
-  ('D', 4, 'SN Sports'),
-  ('D', 5, 'Madmasters'),
-  ('D', 6, 'LHS'),
+  ('D', 1, 'LHS'),
+  ('D', 2, 'YDK'),
+  ('D', 3, 'SN Sports'),
+  ('D', 4, 'Scorpions'),
+  ('D', 5, '11 Star'),
+  ('D', 6, 'Madmasters'),
   ('D', 7, 'Dream Chasers'),
-  ('D', 8, 'Scorpions'),
-  ('D', 9, '11 Star'),
-  ('D', 10, 'Black Booster')
+  ('D', 8, 'Sports Star'),
+  ('D', 9, 'Black Booster'),
+  ('D', 10, 'Fearless')
 ) AS v(pool_code, slot_order, team_name)
 JOIN teams t ON t.normalized_name = normalize_team_name(v.team_name)
 ON CONFLICT (pool_code, slot_order) DO UPDATE SET team_id = EXCLUDED.team_id;

@@ -1,18 +1,18 @@
--- Pool D slot order (committee): slots 7–9 = Dream Chasers, Scorpions, 11 Star.
+-- Pool D slot order (committee). Superseded by 041_pool_d_committee_slot_order.sql on existing DBs.
 
 WITH placement AS (
   SELECT v.pool_code, v.slot_order, t.id AS team_id
   FROM (VALUES
-    ('D', 1, 'YDK'),
-    ('D', 2, 'Sports Star'),
-    ('D', 3, 'Fearless'),
-    ('D', 4, 'SN Sports'),
-    ('D', 5, 'Madmasters'),
-    ('D', 6, 'LHS'),
+    ('D', 1, 'LHS'),
+    ('D', 2, 'YDK'),
+    ('D', 3, 'SN Sports'),
+    ('D', 4, 'Scorpions'),
+    ('D', 5, '11 Star'),
+    ('D', 6, 'Madmasters'),
     ('D', 7, 'Dream Chasers'),
-    ('D', 8, 'Scorpions'),
-    ('D', 9, '11 Star'),
-    ('D', 10, 'Black Booster')
+    ('D', 8, 'Sports Star'),
+    ('D', 9, 'Black Booster'),
+    ('D', 10, 'Fearless')
   ) AS v(pool_code, slot_order, team_name)
   JOIN teams t ON t.normalized_name = normalize_team_name(v.team_name)
 )
@@ -25,16 +25,16 @@ UPDATE tournament_pool_slots SET team_id = NULL WHERE pool_code = 'D';
 WITH placement AS (
   SELECT v.pool_code, v.slot_order, t.id AS team_id
   FROM (VALUES
-    ('D', 1, 'YDK'),
-    ('D', 2, 'Sports Star'),
-    ('D', 3, 'Fearless'),
-    ('D', 4, 'SN Sports'),
-    ('D', 5, 'Madmasters'),
-    ('D', 6, 'LHS'),
+    ('D', 1, 'LHS'),
+    ('D', 2, 'YDK'),
+    ('D', 3, 'SN Sports'),
+    ('D', 4, 'Scorpions'),
+    ('D', 5, '11 Star'),
+    ('D', 6, 'Madmasters'),
     ('D', 7, 'Dream Chasers'),
-    ('D', 8, 'Scorpions'),
-    ('D', 9, '11 Star'),
-    ('D', 10, 'Black Booster')
+    ('D', 8, 'Sports Star'),
+    ('D', 9, 'Black Booster'),
+    ('D', 10, 'Fearless')
   ) AS v(pool_code, slot_order, team_name)
   JOIN teams t ON t.normalized_name = normalize_team_name(v.team_name)
 )

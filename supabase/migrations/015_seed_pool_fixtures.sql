@@ -59,12 +59,12 @@ SELECT _seed_fixture('C', 27, 'R3 · M1 · Winner R1-M2 vs Winner R2-M1', NULL, 
 SELECT _seed_fixture('C', 29, 'R4 · Final · Winner R3-M1 vs Winner R2-M2', NULL, NULL, NULL);
 
 -- Pool D — Sunday 19 Oct 2026, from 12:30 PM IST
-SELECT _seed_fixture('D', 31, 'R1 · M1', 'Sports Star', 'Fearless', '2026-10-19T07:00:00+00');
-SELECT _seed_fixture('D', 32, 'R1 · M2', 'SN Sports', 'Madmasters', '2026-10-19T07:45:00+00');
-SELECT _seed_fixture('D', 33, 'R1 · M3', 'LHS', 'Dream Chasers', '2026-10-19T08:30:00+00');
-SELECT _seed_fixture('D', 34, 'R1 · M4', 'Scorpions', '11 Star', '2026-10-19T09:15:00+00');
-SELECT _seed_fixture('D', 35, 'R2 · M1 · vs Winner R1-M1', 'YDK', NULL, '2026-10-19T10:00:00+00');
-SELECT _seed_fixture('D', 36, 'R2 · M2 · vs Winner R1-M4', 'Black Booster', NULL, '2026-10-19T10:45:00+00');
+SELECT _seed_fixture('D', 31, 'R1 · M1', 'YDK', 'SN Sports', '2026-10-18T07:00:00+00:00');
+SELECT _seed_fixture('D', 32, 'R1 · M2', 'Scorpions', '11 Star', '2026-10-18T07:45:00+00:00');
+SELECT _seed_fixture('D', 33, 'R1 · M3', 'Madmasters', 'Dream Chasers', '2026-10-18T08:30:00+00:00');
+SELECT _seed_fixture('D', 34, 'R1 · M4', 'Sports Star', 'Black Booster', '2026-10-18T09:15:00+00:00');
+SELECT _seed_fixture('D', 35, 'R2 · M1 · vs Winner R1-M1', 'LHS', NULL, '2026-10-18T10:00:00+00:00');
+SELECT _seed_fixture('D', 36, 'R2 · M2 · vs Winner R1-M4', 'Fearless', NULL, '2026-10-18T10:45:00+00:00');
 SELECT _seed_fixture('D', 37, 'R3 · M1 · Winner R1-M2 vs Winner R2-M1', NULL, NULL, NULL);
 SELECT _seed_fixture('D', 38, 'R3 · M2 · Winner R1-M3 vs Winner R2-M2', NULL, NULL, NULL);
 SELECT _seed_fixture('D', 39, 'R4 · Final · Winner R3-M1 vs Winner R3-M2', NULL, NULL, NULL);
