@@ -17,6 +17,7 @@ import { useBoardDrawReveal } from '../hooks/useBoardDrawReveal';
 import { useFixturesPoolReveal } from '../hooks/useFixturesPoolReveal';
 import { useSiteConfigPoll } from '../hooks/useSiteConfigPoll';
 import { groupFixturesByPool } from '../utils/fixtureDisplay';
+import { supabaseConfigured } from '../lib/supabase';
 import { hydratePoolFixturesFromSlots } from '../utils/poolSlotFixtureTeams';
 import {
   SHOWDOWN_TAB,
@@ -121,12 +122,6 @@ export function FixturesPage() {
   const revealLive = animating && !poolReveal.reduceMotion;
   const bracketCaptureRef = useRef<HTMLDivElement>(null);
   const scheduleCaptureRef = useRef<HTMLDivElement>(null);
-
-  if (!tournament) {
-    return (
-      <div className="flex min-h-[40vh] items-center justify-center bg-ink-deep text-paper/40">Loading…</div>
-    );
-  }
 
   const adminBar = <PublicAdminPublishDock preset="fixtures" onUpdated={refresh} />;
   const showIdle = boardPhase === 'idle' && !contentUnlocked;
@@ -247,8 +242,12 @@ export function FixturesPage() {
         ) : null}
 
         {!showIdle && matches.length === 0 ? (
-          <p className="mt-14 text-center text-sm text-paper/50">
-            Fixtures are not set yet. Run migration 015 in Supabase or add fixtures in Admin → Pools & fixtures.
+          <p className="mt-14 text-center text-sm leading-relaxed text-paper/50">
+            {!supabaseConfigured
+              ? 'This site is missing Supabase env vars (VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY). Add them in Vercel and redeploy.'
+              : contentUnlocked
+                ? 'No fixtures returned yet. In Admin, publish fixtures (Visible) or run migrations 015+ in Supabase.'
+                : 'Fixtures are still gated. Use Admin sign-in on this page to publish or wait for the countdown.'}
           </p>
         ) : null}
       </PublicPageContent>

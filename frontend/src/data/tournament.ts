@@ -24,6 +24,10 @@ const DEFAULT_SITE: SiteConfigRow = {
   teams_board_run: 0,
 };
 
+export function getDefaultTournamentPublic(): TournamentPublic {
+  return mapSiteConfigToTournament(DEFAULT_SITE);
+}
+
 export async function fetchSiteConfig(): Promise<SiteConfigRow> {
   const sb = requireSupabase();
   const { data, error } = await sb.from('site_config').select('*').eq('id', 1).maybeSingle();

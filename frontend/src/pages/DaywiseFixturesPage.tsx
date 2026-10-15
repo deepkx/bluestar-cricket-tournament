@@ -83,12 +83,6 @@ export function DaywiseFixturesPage() {
   const sections = useMemo(() => buildDayHalfSections(displayFixtures), [displayFixtures]);
   const poolFixturesByCode = useMemo(() => groupFixturesByPool(displayFixtures), [displayFixtures]);
 
-  if (!tournament) {
-    return (
-      <div className="flex min-h-[40vh] items-center justify-center bg-ink-deep text-paper/40">Loading…</div>
-    );
-  }
-
   const adminBar = <PublicAdminPublishDock preset="fixtures" onUpdated={refresh} />;
   const showIdle = boardPhase === 'idle' && !contentUnlocked;
   const revealLive = animating && !poolReveal.reduceMotion;

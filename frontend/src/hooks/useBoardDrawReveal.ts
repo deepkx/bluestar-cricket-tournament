@@ -14,13 +14,18 @@ type Args = {
 export function useBoardDrawReveal({ revealIso, timezone, sessionKey, boardPhase }: Args) {
   const countdown = useCountdown(revealIso ?? undefined, timezone);
   const countdownExpired = Boolean(revealIso && (countdown?.expired ?? false));
+  const revealTimePassed = Boolean(
+    revealIso && !Number.isNaN(Date.parse(revealIso)) && Date.parse(revealIso) <= Date.now(),
+  );
   const countdownLive =
     boardPhase === 'countdown' && Boolean(revealIso) && !countdownExpired;
 
+  /** Match Supabase fixtures_public_revealed / pools_public_revealed (incl. past reveal time). */
   const contentUnlocked =
     boardPhase === 'visible' ||
     boardPhase === 'animating' ||
-    (boardPhase === 'countdown' && countdownExpired);
+    (boardPhase === 'countdown' && countdownExpired) ||
+    revealTimePassed;
 
   const [phase, setPhase] = useState<DrawRevealPhase>('waiting');
 
@@ -29,7 +34,7 @@ export function useBoardDrawReveal({ revealIso, timezone, sessionKey, boardPhase
       setPhase('waiting');
       return;
     }
-    if (boardPhase === 'visible') {
+    if (boardPhase === 'visible' || (boardPhase === 'idle' && revealTimePassed)) {
       setPhase('revealed');
       return;
     }
@@ -49,7 +54,7 @@ export function useBoardDrawReveal({ revealIso, timezone, sessionKey, boardPhase
       return;
     }
     setPhase('waiting');
-  }, [contentUnlocked, boardPhase, sessionKey, countdownExpired, revealIso]);
+  }, [contentUnlocked, boardPhase, sessionKey, countdownExpired, revealIso, revealTimePassed]);
 
   const completeAnimation = useCallback(() => {
     if (contentUnlocked && boardPhase !== 'visible') {

@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
-import { getCurrentTournament } from '../data/tournament';
+import { getCurrentTournament, getDefaultTournamentPublic } from '../data/tournament';
 import type { TournamentPublic } from '../types/api';
 
 const POLL_MS = 4000;
 
 /** Keeps tournament + publish phases in sync for all visitors (light polling). */
 export function useSiteConfigPoll(initial: TournamentPublic | null = null) {
-  const [tournament, setTournament] = useState<TournamentPublic | null>(initial);
+  const [tournament, setTournament] = useState<TournamentPublic | null>(
+    () => initial ?? getDefaultTournamentPublic(),
+  );
   const [refreshNonce, setRefreshNonce] = useState(0);
 
   const refresh = useCallback(() => setRefreshNonce((n) => n + 1), []);
