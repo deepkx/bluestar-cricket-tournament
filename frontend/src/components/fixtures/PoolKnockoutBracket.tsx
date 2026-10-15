@@ -16,10 +16,10 @@ import {
   type FixtureRevealFlavor,
 } from './fixturesRevealRandom';
 import { useFixtureBracketTeamPick } from '../../hooks/useFixtureBracketTeamPick';
-
-const { layout: LAYOUT, canvasW: CANVAS_W, canvasH: CANVAS_H } = buildBracketLayout();
+import { isShortKnockoutPool } from '../../utils/poolBracketFormat';
 
 type PosKey = BracketPosKey;
+type BracketLayoutMap = Record<BracketPosKey, { x: number; y: number }>;
 
 const HDR_H = 38;
 const TEAM_H = 48;
@@ -28,12 +28,11 @@ const PAD = 10;
 const FOOT_H = 30;
 
 const TOP_BYPASS_Y = 28;
-const BOT_BYPASS_Y = CANVAS_H - 28;
 
 type Pt = { x: number; y: number };
 
-function matchAnchors(key: PosKey, hasKickoff: boolean) {
-  const { x, y } = LAYOUT[key];
+function matchAnchors(layout: BracketLayoutMap, key: PosKey, hasKickoff: boolean) {
+  const { x, y } = layout[key];
   const innerTop = y + HDR_H + PAD;
   const topY = innerTop + TEAM_H / 2;
   const bottomY = innerTop + TEAM_H + TEAM_GAP + TEAM_H / 2;
@@ -231,45 +230,64 @@ function BracketArrows({
   instant,
   delayOffsetS = 0,
   flavor,
+  shortKnockout,
+  layout,
+  canvasW,
+  canvasH,
 }: {
   markerId: string;
   revealActive: boolean;
   instant: boolean;
   delayOffsetS?: number;
   flavor: FixtureRevealFlavor;
+  shortKnockout: boolean;
+  layout: BracketLayoutMap;
+  canvasW: number;
+  canvasH: number;
 }) {
   const reduceMotion = useReducedMotion();
   const stroke = 'rgba(229,160,23,0.75)';
   const drawPaths = revealActive && !instant && !reduceMotion;
+  const botBypassY = canvasH - 28;
 
-  const r1m1 = matchAnchors('r1m1', true);
-  const r1m2 = matchAnchors('r1m2', true);
-  const r1m3 = matchAnchors('r1m3', true);
-  const r1m4 = matchAnchors('r1m4', true);
-  const r2m1 = matchAnchors('r2m1', true);
-  const r2m2 = matchAnchors('r2m2', true);
-  const r3m1 = matchAnchors('r3m1', false);
-  const r3m2 = matchAnchors('r3m2', false);
-  const fin = matchAnchors('final', false);
+  const r1m1 = matchAnchors(layout, 'r1m1', true);
+  const r1m2 = matchAnchors(layout, 'r1m2', true);
+  const r1m3 = matchAnchors(layout, 'r1m3', true);
+  const r1m4 = matchAnchors(layout, 'r1m4', true);
+  const r2m1 = matchAnchors(layout, 'r2m1', true);
+  const r2m2 = matchAnchors(layout, 'r2m2', true);
+  const r3m1 = matchAnchors(layout, 'r3m1', false);
+  const r3m2 = matchAnchors(layout, 'r3m2', false);
+  const fin = matchAnchors(layout, 'final', false);
 
   /** One dedicated gutter X (or pair) per connector — no shared vertical lanes. */
-  const wires: WirePart[] = [
-    ...elbowWire(r1m1.outWinner, 314, r2m1.inBottom),
-    ...elbowWire(r1m4.outWinner, 330, r2m2.inBottom),
-    ...bypassWire(r1m2.outTop, 302, TOP_BYPASS_Y, 702, r3m1.inTop),
-    ...bypassWire(r1m3.outWinner, 346, BOT_BYPASS_Y, 734, r3m2.inTop),
-    ...elbowWire({ x: r2m1.outWinner.x, y: r2m1.inBottom.y }, 686, r3m1.inBottom),
-    ...elbowWire({ x: r2m2.outWinner.x, y: r2m2.inBottom.y }, 758, r3m2.inBottom),
-    ...elbowWire(r3m1.outMid, 1056, fin.inTop),
-    ...elbowWire(r3m2.outMid, 1080, fin.inBottom),
-  ];
+  const wires: WirePart[] = shortKnockout
+    ? [
+        ...elbowWire(r1m1.outWinner, 314, r2m1.inBottom),
+        ...elbowWire(r1m4.outWinner, 330, r2m2.inBottom),
+        ...bypassWire(r1m2.outTop, 302, TOP_BYPASS_Y, 702, r3m1.inTop),
+        ...elbowWire(r1m3.outWinner, 338, r2m2.inTop),
+        ...elbowWire({ x: r2m1.outWinner.x, y: r2m1.inBottom.y }, 686, r3m1.inBottom),
+        ...elbowWire(r2m2.outMid, 1056, fin.inBottom),
+        ...elbowWire(r3m1.outMid, 1020, fin.inTop),
+      ]
+    : [
+        ...elbowWire(r1m1.outWinner, 314, r2m1.inBottom),
+        ...elbowWire(r1m4.outWinner, 330, r2m2.inBottom),
+        ...bypassWire(r1m2.outTop, 302, TOP_BYPASS_Y, 702, r3m1.inTop),
+        ...bypassWire(r1m3.outWinner, 346, botBypassY, 734, r3m2.inTop),
+        ...elbowWire({ x: r2m1.outWinner.x, y: r2m1.inBottom.y }, 686, r3m1.inBottom),
+        ...elbowWire({ x: r2m2.outWinner.x, y: r2m2.inBottom.y }, 758, r3m2.inBottom),
+        ...elbowWire(r3m1.outMid, 1056, fin.inTop),
+        ...elbowWire(r3m2.outMid, 1080, fin.inBottom),
+      ];
 
   return (
     <svg
       className="pointer-events-none absolute left-0 top-0 z-[5]"
-      width={CANVAS_W}
-      height={CANVAS_H}
-      viewBox={`0 0 ${CANVAS_W} ${CANVAS_H}`}
+      width={canvasW}
+      height={canvasH}
+      viewBox={`0 0 ${canvasW} ${canvasH}`}
       aria-hidden
     >
       <defs>
@@ -321,6 +339,7 @@ function PlacedMatch({
   pickMode,
   pickDone,
   isTeamSlotVisible,
+  layout,
 }: {
   node: BracketMatchNode | undefined;
   posKey: PosKey;
@@ -331,6 +350,7 @@ function PlacedMatch({
   pickMode: boolean;
   pickDone: boolean;
   isTeamSlotVisible: (posKey: PosKey, side: 'top' | 'bottom') => boolean;
+  layout: BracketLayoutMap;
 }) {
   const reduceMotion = useReducedMotion();
   if (!node) return null;
@@ -339,7 +359,7 @@ function PlacedMatch({
     return null;
   }
 
-  const p = LAYOUT[posKey];
+  const p = layout[posKey];
   const skipMotion = instant || !revealActive || reduceMotion || pickMode;
   const revealMotion = flavor.matchMotion[posKey];
   const delay = BRACKET_MATCH_DELAY_S[posKey] + revealMotion.delayJitter;
@@ -410,6 +430,11 @@ export function PoolKnockoutBracket({
 
   const instant = revealed || !revealActive;
   const buildPhase = revealActive && !instant;
+  const shortKnockout = isShortKnockoutPool(poolCode);
+  const { layout: bracketLayout, canvasW, canvasH } = useMemo(
+    () => buildBracketLayout(shortKnockout),
+    [shortKnockout],
+  );
   const flavor = useMemo(
     () => fixtureRevealFlavor(`${poolCode}-r${revealTick}`),
     [poolCode, revealTick],
@@ -419,6 +444,7 @@ export function PoolKnockoutBracket({
     active: pickMode,
     seeds,
     seedKey: `${poolCode}-pick-r${revealTick}`,
+    shortKnockout,
   });
   const pickDone = !pickMode || teamPick.done;
   const matchDayLabel = useMemo(() => {
@@ -516,7 +542,7 @@ export function PoolKnockoutBracket({
 
           <div
             className="relative shrink-0 rounded-lg border border-paper/10 bg-ink-deep p-3"
-            style={{ width: CANVAS_W + 24, height: CANVAS_H + 24 }}
+            style={{ width: canvasW + 24, height: canvasH + 24 }}
           >
             <motion.div
               className="pointer-events-none absolute inset-x-8 top-3 flex justify-between text-[11px] font-bold uppercase tracking-widest text-paper/35"
@@ -529,7 +555,7 @@ export function PoolKnockoutBracket({
               <span className="ml-[18%]">Round 3</span>
               <span>Final</span>
             </motion.div>
-            <div className="relative" style={{ width: CANVAS_W, height: CANVAS_H, marginTop: 20 }}>
+            <div className="relative" style={{ width: canvasW, height: canvasH, marginTop: 20 }}>
               {buildPhase
                 ? flavor.sparkles.map((s, i) => (
                     <motion.span
@@ -548,6 +574,10 @@ export function PoolKnockoutBracket({
                 revealActive={(buildPhase && pickDone) || (revealActive && instant)}
                 instant={instant || !buildPhase || !pickDone}
                 flavor={flavor}
+                shortKnockout={shortKnockout}
+                layout={bracketLayout}
+                canvasW={canvasW}
+                canvasH={canvasH}
               />
               {R1_KEYS.map((key, i) => (
                 <PlacedMatch
@@ -561,6 +591,7 @@ export function PoolKnockoutBracket({
                   pickMode={pickMode}
                   pickDone={pickDone}
                   isTeamSlotVisible={teamPick.isTeamSlotVisible}
+                  layout={bracketLayout}
                 />
               ))}
               <PlacedMatch
@@ -573,6 +604,7 @@ export function PoolKnockoutBracket({
                 pickMode={pickMode}
                 pickDone={pickDone}
                 isTeamSlotVisible={teamPick.isTeamSlotVisible}
+                layout={bracketLayout}
               />
               <PlacedMatch
                 node={model.r2.find((m) => m.matchNum === 2)}
@@ -584,6 +616,7 @@ export function PoolKnockoutBracket({
                 pickMode={pickMode}
                 pickDone={pickDone}
                 isTeamSlotVisible={teamPick.isTeamSlotVisible}
+                layout={bracketLayout}
               />
               <PlacedMatch
                 node={model.r3.find((m) => m.matchNum === 1)}
@@ -595,18 +628,22 @@ export function PoolKnockoutBracket({
                 pickMode={pickMode}
                 pickDone={pickDone}
                 isTeamSlotVisible={teamPick.isTeamSlotVisible}
+                layout={bracketLayout}
               />
-              <PlacedMatch
-                node={model.r3.find((m) => m.matchNum === 2)}
-                posKey="r3m2"
-                accent="gold"
-                revealActive={revealActive}
-                instant={instant}
-                flavor={flavor}
-                pickMode={pickMode}
-                pickDone={pickDone}
-                isTeamSlotVisible={teamPick.isTeamSlotVisible}
-              />
+              {!shortKnockout ? (
+                <PlacedMatch
+                  node={model.r3.find((m) => m.matchNum === 2)}
+                  posKey="r3m2"
+                  accent="gold"
+                  revealActive={revealActive}
+                  instant={instant}
+                  flavor={flavor}
+                  pickMode={pickMode}
+                  pickDone={pickDone}
+                  isTeamSlotVisible={teamPick.isTeamSlotVisible}
+                  layout={bracketLayout}
+                />
+              ) : null}
               <PlacedMatch
                 node={model.final ?? undefined}
                 posKey="final"
@@ -617,6 +654,7 @@ export function PoolKnockoutBracket({
                 pickMode={pickMode}
                 pickDone={pickDone}
                 isTeamSlotVisible={teamPick.isTeamSlotVisible}
+                layout={bracketLayout}
               />
             </div>
           </div>

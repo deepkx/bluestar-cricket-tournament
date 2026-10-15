@@ -1,9 +1,9 @@
 import { Link } from 'react-router-dom';
 import type { FixtureRow } from '../../data/pools';
 import {
+  fixtureDisplayOpponentA,
   fixtureDisplayOpponentB,
   fixtureMatchCode,
-  fixtureOpponentA,
   fixtureRoundTag,
   formatFixtureTimeWindow,
 } from '../../utils/fixtureDisplay';
@@ -60,19 +60,19 @@ function MatchRows({
         {rows.map((row, i) => {
           const poolCode = row.poolCode ?? '';
           const poolFixtures = poolFixturesByCode.get(poolCode) ?? [];
-          const teamA = row.teamAName ?? fixtureOpponentA(row);
+          const teamA = row.teamAName ?? fixtureDisplayOpponentA(row, poolFixtures);
           const teamB = row.teamBName ?? fixtureDisplayOpponentB(row, poolFixtures);
           const code = fixtureMatchCode(row.label, i + 1);
           const tag = fixtureRoundTag(row.label);
+          const matchLabel = tag === code ? tag : code;
 
           return (
             <tr key={row.id} className="border-b border-paper/8 odd:bg-ink-deep/15">
               <td className="whitespace-nowrap px-4 py-4 font-display text-floodlight-bright sm:px-5">
                 {poolCode}
               </td>
-              <td className="whitespace-nowrap px-4 py-4 sm:px-5">
-                <span className="text-xs font-bold uppercase tracking-wider text-electric">{tag}</span>
-                <span className="mt-1 block font-semibold text-paper">{code}</span>
+              <td className="whitespace-nowrap px-4 py-4 font-semibold text-paper sm:px-5">
+                <span className="text-xs font-bold uppercase tracking-wider text-electric">{matchLabel}</span>
               </td>
               <td className="whitespace-nowrap px-4 py-4 tabular-nums text-floodlight-bright sm:px-5">
                 {formatFixtureTimeWindow(row.scheduledAt)}

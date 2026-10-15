@@ -7,7 +7,11 @@ import {
   POOL_CODES,
   type FixtureRow,
 } from '../../data/pools';
-import { fixtureDisplayOpponentB, fixtureMatchCode, fixtureOpponentA } from '../../utils/fixtureDisplay';
+import {
+  fixtureDisplayOpponentA,
+  fixtureDisplayOpponentB,
+  fixtureMatchCode,
+} from '../../utils/fixtureDisplay';
 import { fixtureWinnerName } from '../../utils/fixtureResults';
 import {
   SHOWDOWN_TAB,
@@ -127,7 +131,7 @@ export function AdminMatchResultsPage() {
         {poolFixtures.map((f) => {
           const hydrated = f.poolCode == null ? hydrateShowdownRow(f, fixtures) : f;
           const code = fixtureMatchCode(f.label, f.matchOrder);
-          const teamA = hydrated.teamAName ?? fixtureOpponentA(f);
+          const teamA = hydrated.teamAName ?? fixtureDisplayOpponentA(f, poolFixtures);
           const teamB =
             f.poolCode == null
               ? fixtureDisplayOpponentShowdown(f, fixtures)

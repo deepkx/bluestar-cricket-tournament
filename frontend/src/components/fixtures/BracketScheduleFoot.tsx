@@ -1,8 +1,8 @@
 import type { FixtureRow } from '../../data/pools';
 import {
+  fixtureDisplayOpponentA,
   fixtureDisplayOpponentB,
   fixtureMatchCode,
-  fixtureOpponentA,
   formatFixtureDate,
   formatFixtureTimeWindow,
 } from '../../utils/fixtureDisplay';
@@ -42,7 +42,7 @@ export function BracketScheduleFoot({ poolCode, fixtures }: Props) {
                     {formatFixtureTimeWindow(row.scheduledAt)}
                   </span>
                   <span className="text-paper/70">
-                    {fixtureOpponentA(row)} vs {fixtureDisplayOpponentB(row, fixtures)}
+                    {fixtureDisplayOpponentA(row, fixtures)} vs {fixtureDisplayOpponentB(row, fixtures)}
                   </span>
                 </div>
               </li>

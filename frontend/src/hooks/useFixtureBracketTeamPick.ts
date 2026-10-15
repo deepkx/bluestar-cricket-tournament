@@ -19,16 +19,18 @@ export function useFixtureBracketTeamPick({
   active,
   seeds,
   seedKey,
+  shortKnockout = false,
 }: {
   active: boolean;
   seeds: SeedRow[];
   seedKey: string;
+  shortKnockout?: boolean;
 }) {
   const reduceMotion = useReducedMotion();
   const pickOrder = useMemo(() => {
-    const placements = buildBracketTeamPlacements(seeds);
+    const placements = buildBracketTeamPlacements(seeds, shortKnockout);
     return shuffleBracketPickOrder(placements, seedKey);
-  }, [seeds, seedKey]);
+  }, [seeds, seedKey, shortKnockout]);
 
   const [highlightSlotOrder, setHighlightSlotOrder] = useState<number | null>(null);
   const [revealedKeys, setRevealedKeys] = useState<Set<string>>(() => new Set());

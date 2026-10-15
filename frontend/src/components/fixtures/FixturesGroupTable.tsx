@@ -5,9 +5,9 @@ import { fixtureRevealFlavor, type TeamSlotRevealMotion } from './fixturesReveal
 import { TeamRevealMotion } from './TeamRevealMotion';
 import type { FixtureRow } from '../../data/pools';
 import {
+  fixtureDisplayOpponentA,
   fixtureDisplayOpponentB,
   fixtureMatchCode,
-  fixtureOpponentA,
   fixtureRoundTag,
   formatFixtureDate,
   formatFixtureTimeWindow,
@@ -123,7 +123,7 @@ function ScheduleTable({
       </thead>
       <tbody>
         {rows.map((row, i) => {
-          const teamA = fixtureOpponentA(row);
+          const teamA = fixtureDisplayOpponentA(row, poolFixtures);
           const teamB = fixtureDisplayOpponentB(row, poolFixtures);
           const eliminatedA = fixtureSideEliminated(row, 'A', poolFixtures);
           const eliminatedB = fixtureSideEliminated(row, 'B', poolFixtures);

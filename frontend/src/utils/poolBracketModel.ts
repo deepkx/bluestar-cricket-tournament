@@ -5,6 +5,7 @@ import {
   fixtureSideEliminated,
   resolveBracketRefName,
 } from './fixtureResults';
+import { isShortKnockoutPool } from './poolBracketFormat';
 
 export type BracketSide = {
   text: string;
@@ -74,6 +75,19 @@ function sidesFromFixture(
   }
 
   if (round === 2) {
+    const winnerPair = parseWinnerPairLabel(row.label);
+    if (matchNum === 2 && winnerPair?.top.startsWith('R1') && winnerPair.bottom.startsWith('R1')) {
+      return {
+        id: row.id,
+        round: 2,
+        matchNum,
+        title: `R2 · M${matchNum}`,
+        top: resolvedOrWinnerSide(fixtures, winnerPair.top),
+        bottom: resolvedOrWinnerSide(fixtures, winnerPair.bottom),
+        kickoff: row.scheduledAt ? formatFixtureTimeWindow(row.scheduledAt) : null,
+        dayNote: null,
+      };
+    }
     const bottomRef = matchNum === 1 ? 'R1-M1' : 'R1-M4';
     const winnerFromLabel = row.label?.match(/Winner (R\d+-M\d+)/i)?.[1];
     const ref = winnerFromLabel ?? bottomRef;
@@ -111,13 +125,19 @@ function sidesFromFixture(
     };
   }
 
+  const finalPair = parseWinnerPairLabel(row.label);
+  const bottomRef =
+    finalPair?.bottom ??
+    (isShortKnockoutPool(row.poolCode ?? undefined) ? 'R2-M2' : 'R3-M2');
+  const topRef = finalPair?.top ?? 'R3-M1';
+
   return {
     id: row.id,
     round: 4,
     matchNum: 1,
     title: 'R4 · Final',
-    top: resolvedOrWinnerSide(fixtures, 'R3-M1'),
-    bottom: resolvedOrWinnerSide(fixtures, 'R3-M2'),
+    top: resolvedOrWinnerSide(fixtures, topRef),
+    bottom: resolvedOrWinnerSide(fixtures, bottomRef),
     kickoff: row.scheduledAt ? formatFixtureTimeWindow(row.scheduledAt) : null,
     dayNote: row.scheduledAt ? null : 'Another day',
   };
@@ -131,13 +151,16 @@ export type PoolBracketModel = {
 };
 
 export function buildPoolBracket(fixtures: FixtureRow[]): PoolBracketModel {
+  const poolCode = fixtures[0]?.poolCode ?? '';
+  const short = isShortKnockoutPool(poolCode);
   const r1 = [1, 2, 3, 4]
     .map((m) => sidesFromFixture(fixtures, findFixtureByRoundMatch(fixtures, 1, m), 1, m))
     .filter(Boolean) as BracketMatchNode[];
   const r2 = [1, 2]
     .map((m) => sidesFromFixture(fixtures, findFixtureByRoundMatch(fixtures, 2, m), 2, m))
     .filter(Boolean) as BracketMatchNode[];
-  const r3 = [1, 2]
+  const r3Matches = short ? [1] : [1, 2];
+  const r3 = r3Matches
     .map((m) => sidesFromFixture(fixtures, findFixtureByRoundMatch(fixtures, 3, m), 3, m))
     .filter(Boolean) as BracketMatchNode[];
   const finalRow = fixtures.find((f) => f.label?.includes('Final'));

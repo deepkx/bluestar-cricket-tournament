@@ -1,5 +1,6 @@
 import type { FixtureRow, PoolBoard } from '../data/pools';
 import { fixtureDisplayOpponentB, fixtureOpponentA } from './fixtureDisplay';
+import { isShortKnockoutPool } from './poolBracketFormat';
 
 function slotTeamName(board: PoolBoard | undefined, slotOrder: number): string | null {
   if (!board) return null;
@@ -48,6 +49,9 @@ export function fixtureTeamsFromPoolSlots(
       };
     }
     if (m === 2) {
+      if (row.poolCode && isShortKnockoutPool(row.poolCode)) {
+        return { teamAName: fallbackA, teamBName: fallbackB };
+      }
       return {
         teamAName: slotTeamName(board, 10) ?? fallbackA,
         teamBName: fallbackB,

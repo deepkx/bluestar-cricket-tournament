@@ -24,7 +24,7 @@ export type BracketPosKey =
   | 'final';
 
 /** Hand-tuned stagger; Y gaps derived from real box heights so cards never overlap. */
-export function buildBracketLayout(): {
+export function buildBracketLayout(shortKnockout = false): {
   layout: Record<BracketPosKey, { x: number; y: number }>;
   canvasW: number;
   canvasH: number;
@@ -55,11 +55,13 @@ export function buildBracketLayout(): {
   const r3Gap = 36;
   const r3m1 = r2m1 + hR2 + r3Gap;
 
-  /** Lower path: R2-M2 (slot 10 vs W R1-M4) · R3-M2 (W R1-M3 vs W R2-M2). */
+  /** Lower path: R2-M2 · optional R3-M2 (10-team) or R2-M2 → Final (9-team short). */
   const r2m2 = r1m3 + Math.round((hR1 + r1Gap) * 0.55);
   const r3m2 = Math.max(r3m1 + hR3 + r3Gap, r2m2 - hR3 - r3Gap);
 
-  const finalY = Math.round((r3m1 + r3m2 + hR3) / 2 - hFinal / 2);
+  const finalY = shortKnockout
+    ? Math.round((r3m1 + r2m2 + hR3) / 2 - hFinal / 2)
+    : Math.round((r3m1 + r3m2 + hR3) / 2 - hFinal / 2);
 
   const layout: Record<BracketPosKey, { x: number; y: number }> = {
     r1m1: { x: xR1, y: r1m1 },
@@ -74,7 +76,9 @@ export function buildBracketLayout(): {
   };
 
   const canvasW = xFinal + BRACKET_MATCH_W + 48;
-  const bottom = Math.max(r1m4 + hR1, r2m1 + hR2, r3m2 + hR3, finalY + hFinal);
+  const bottom = shortKnockout
+    ? Math.max(r1m4 + hR1, r2m1 + hR2, r2m2 + hR2, r3m1 + hR3, finalY + hFinal)
+    : Math.max(r1m4 + hR1, r2m1 + hR2, r3m2 + hR3, finalY + hFinal);
   const canvasH = bottom + 48;
 
   return {

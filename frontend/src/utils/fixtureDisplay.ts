@@ -48,9 +48,33 @@ export function formatFixtureTimeWindow(startIso: string | null, durationMs = MA
   return `${fmt.format(start)} – ${fmt.format(end)}`;
 }
 
+/** Both sides from e.g. "R2 · M2 · Winner R1-M3 vs Winner R1-M4". Null for seed-vs-winner labels. */
+export function parseFixtureLabelSides(
+  label: string | null | undefined,
+): { sideA: string; sideB: string } | null {
+  if (!label) return null;
+  const m = label.match(/^R\d+ · M\d+ ·\s*(.+)\s+vs\s+(.+)$/i);
+  if (!m) return null;
+  const sideA = m[1].trim().replace(/^vs\s+/i, '').trim();
+  const sideB = m[2].trim();
+  if (!sideA || !sideB || sideA.toLowerCase() === 'vs') return null;
+  return { sideA, sideB };
+}
+
+function resolveWinnerPlaceholder(text: string, poolFixtures: FixtureRow[]): string {
+  const ref = text.match(/Winner (R\d+-M\d+)/i)?.[1];
+  if (ref) {
+    const resolved = resolveBracketRefName(poolFixtures, ref);
+    if (resolved) return resolved;
+  }
+  return text;
+}
+
 /** Opponent line when team B is TBD (from label suffix or generic). */
 export function fixtureOpponentB(match: FixtureRow): string {
   if (match.teamBName) return match.teamBName;
+  const pair = parseFixtureLabelSides(match.label);
+  if (pair) return pair.sideB;
   const label = match.label ?? '';
   const vsIdx = label.toLowerCase().indexOf('vs ');
   if (vsIdx >= 0) {
@@ -58,25 +82,24 @@ export function fixtureOpponentB(match: FixtureRow): string {
     if (rest.startsWith('Winner')) return rest;
     return rest || 'TBD';
   }
-  if (label.includes('Winner')) return label.replace(/^R\d+ · M\d+ · /, '').trim() || 'TBD';
   return 'TBD';
 }
 
 /** Team B label with Winner R1-Mx resolved when that match has a result. */
 export function fixtureDisplayOpponentB(match: FixtureRow, poolFixtures: FixtureRow[]): string {
-  const raw = fixtureOpponentB(match);
-  const ref = raw.match(/Winner (R\d+-M\d+)/i)?.[1];
-  if (ref) {
-    const resolved = resolveBracketRefName(poolFixtures, ref);
-    if (resolved) return resolved;
-  }
-  return raw;
+  return resolveWinnerPlaceholder(fixtureOpponentB(match), poolFixtures);
 }
 
 export function fixtureOpponentA(match: FixtureRow): string {
   if (match.teamAName) return match.teamAName;
-  if (match.label?.includes('Winner')) return match.label;
+  const pair = parseFixtureLabelSides(match.label);
+  if (pair) return pair.sideA;
   return 'TBD';
+}
+
+/** Team A label with Winner R1-Mx resolved when that match has a result. */
+export function fixtureDisplayOpponentA(match: FixtureRow, poolFixtures: FixtureRow[]): string {
+  return resolveWinnerPlaceholder(fixtureOpponentA(match), poolFixtures);
 }
 
 export function fixtureRoundTag(label: string | null): string {

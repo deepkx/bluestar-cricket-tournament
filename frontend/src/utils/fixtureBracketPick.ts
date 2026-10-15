@@ -20,6 +20,7 @@ export function placementKey(p: Pick<BracketTeamPlacement, 'posKey' | 'side'>): 
 
 export function buildBracketTeamPlacements(
   seeds: { slotOrder: number; teamName: string | null }[],
+  shortKnockout = false,
 ): BracketTeamPlacement[] {
   const bySlot = new Map(seeds.map((s) => [s.slotOrder, s.teamName]));
   const out: BracketTeamPlacement[] = [];
@@ -37,7 +38,9 @@ export function buildBracketTeamPlacements(
   const seed1 = bySlot.get(1);
   const seed10 = bySlot.get(10);
   if (seed1) out.push({ teamName: seed1, slotOrder: 1, posKey: 'r2m1', side: 'top' });
-  if (seed10) out.push({ teamName: seed10, slotOrder: 10, posKey: 'r2m2', side: 'top' });
+  if (!shortKnockout && seed10) {
+    out.push({ teamName: seed10, slotOrder: 10, posKey: 'r2m2', side: 'top' });
+  }
 
   return out;
 }
