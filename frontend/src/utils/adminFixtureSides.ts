@@ -6,6 +6,23 @@ import {
 } from './fixtureDisplay';
 import { resolveWinnerTeamId } from './fixtureResults';
 
+export function roundFromFixtureLabel(label: string | null | undefined): number {
+  const m = label?.match(/^R(\d+)/);
+  return m ? Number(m[1]) : 0;
+}
+
+export function poolFixturesInRound(poolFixtures: FixtureRow[], round: number): FixtureRow[] {
+  return poolFixtures.filter((f) => roundFromFixtureLabel(f.label) === round);
+}
+
+/** Every match in that round has a recorded winner. */
+export function isPoolRoundComplete(poolFixtures: FixtureRow[], round: number): boolean {
+  if (round < 1) return true;
+  const rows = poolFixturesInRound(poolFixtures, round);
+  if (rows.length === 0) return true;
+  return rows.every((f) => Boolean(f.winnerTeamId));
+}
+
 export type ResolvedPoolFixtureSides = {
   teamAId: string | null;
   teamBId: string | null;
@@ -62,10 +79,19 @@ export function resolvePoolFixtureSidesForAdmin(
     (teamBId ? teamNameForId(teamBId, poolFixtures) : null) ??
     fixtureDisplayOpponentB(row, poolFixtures);
 
-  const playable = Boolean(teamAId && teamBId);
+  const round = roundFromFixtureLabel(row.label);
+  const priorRound = round > 1 ? round - 1 : 0;
+  const priorRoundDone = priorRound === 0 || isPoolRoundComplete(poolFixtures, priorRound);
 
+  let playable = Boolean(teamAId && teamBId);
   let blockReason: string | null = null;
-  if (!playable && pair) {
+
+  if (round >= 2 && !priorRoundDone) {
+    playable = false;
+    blockReason = `Record all Round ${priorRound} results in this pool first.`;
+  }
+
+  if (!playable && pair && priorRoundDone) {
     const missing: string[] = [];
     if (!teamAId) {
       const ref = missingRefReason(pair.sideA);
@@ -78,7 +104,7 @@ export function resolvePoolFixtureSidesForAdmin(
     if (missing.length > 0) {
       blockReason = `Record the winner of ${missing.join(' and ')} first.`;
     }
-  } else if (!playable) {
+  } else if (!playable && priorRoundDone) {
     const ref = row.label?.match(/Winner (R\d+-M\d+)/i)?.[1];
     if (ref && !teamBId) {
       blockReason = `Record the winner of ${ref} first.`;

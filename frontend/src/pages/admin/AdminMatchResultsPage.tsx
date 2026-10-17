@@ -52,7 +52,9 @@ export function AdminMatchResultsPage() {
     if (pool === SHOWDOWN_TAB) {
       return filterShowdownFixtures(fixtures);
     }
-    return fixtures.filter((f) => f.poolCode === pool).sort((a, b) => a.matchOrder - b.matchOrder);
+    return fixtures
+      .filter((f) => f.poolCode === pool)
+      .sort((a, b) => a.matchOrder - b.matchOrder || (a.label ?? '').localeCompare(b.label ?? ''));
   }, [fixtures, pool]);
 
   const record = async (
@@ -100,6 +102,7 @@ export function AdminMatchResultsPage() {
         }),
       );
       setSuccess(winnerTeamId ? 'Winner saved — public bracket updated.' : 'Result cleared.');
+      await load();
     } catch (err) {
       setError(apiErrorMessage(err, 'Could not save winner'));
     } finally {
@@ -110,8 +113,8 @@ export function AdminMatchResultsPage() {
   return (
     <AdminShell title="Match results">
       <p className="mb-4 text-sm text-paper/60">
-        Pick the winning team for each finished match (R1–R4). Later rounds fill in automatically once earlier
-        winners are recorded. Requires migrations <code className="text-paper/50">017</code> +{' '}
+        Pick the winning team for each finished match (R1–R4). Record all R1 before R2, all R2 before R3, all R3
+        before the final. Requires migrations <code className="text-paper/50">017</code> +{' '}
         <code className="text-paper/50">018</code> on Supabase.
       </p>
 
