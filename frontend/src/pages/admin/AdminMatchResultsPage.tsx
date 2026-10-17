@@ -2,16 +2,14 @@ import { useEffect, useMemo, useState } from 'react';
 import { AdminShell } from '../../components/admin/AdminShell';
 import {
   adminLoadFixtures,
+  adminPatchFixtureTeams,
   adminPatchShowdownTeams,
   adminSetFixtureWinner,
   POOL_CODES,
   type FixtureRow,
 } from '../../data/pools';
-import {
-  fixtureDisplayOpponentA,
-  fixtureDisplayOpponentB,
-  fixtureMatchCode,
-} from '../../utils/fixtureDisplay';
+import { resolvePoolFixtureSidesForAdmin } from '../../utils/adminFixtureSides';
+import { fixtureMatchCode } from '../../utils/fixtureDisplay';
 import { fixtureWinnerName } from '../../utils/fixtureResults';
 import {
   SHOWDOWN_TAB,
@@ -21,8 +19,8 @@ import {
 } from '../../utils/showdownModel';
 import { apiErrorMessage } from '../../utils/errors';
 
-function canRecordResult(row: FixtureRow, all: FixtureRow[]): boolean {
-  const h = row.poolCode == null ? hydrateShowdownRow(row, all) : row;
+function canRecordShowdown(row: FixtureRow, all: FixtureRow[]): boolean {
+  const h = hydrateShowdownRow(row, all);
   return Boolean(h.teamAId && h.teamBId);
 }
 
@@ -57,7 +55,11 @@ export function AdminMatchResultsPage() {
     return fixtures.filter((f) => f.poolCode === pool).sort((a, b) => a.matchOrder - b.matchOrder);
   }, [fixtures, pool]);
 
-  const record = async (fixtureId: string, winnerTeamId: string | null) => {
+  const record = async (
+    fixtureId: string,
+    winnerTeamId: string | null,
+    sides: { teamAId: string; teamBId: string; teamAName: string | null; teamBName: string | null },
+  ) => {
     if (fixtureId.startsWith('new-')) {
       setError('Save fixtures on Pools & fixtures before recording results.');
       return;
@@ -72,17 +74,29 @@ export function AdminMatchResultsPage() {
         if (h.teamAId && h.teamBId && (!raw.teamAId || !raw.teamBId)) {
           await adminPatchShowdownTeams(fixtureId, h.teamAId, h.teamBId);
         }
+      } else if (raw?.poolCode) {
+        if (!raw.teamAId || !raw.teamBId || raw.teamAId !== sides.teamAId || raw.teamBId !== sides.teamBId) {
+          await adminPatchFixtureTeams(fixtureId, sides.teamAId, sides.teamBId);
+        }
       }
       await adminSetFixtureWinner(fixtureId, winnerTeamId);
       setFixtures((prev) =>
         prev.map((f) => {
           if (f.id !== fixtureId) return f;
           const name = winnerTeamId
-            ? winnerTeamId === f.teamAId
-              ? f.teamAName
-              : f.teamBName
+            ? winnerTeamId === sides.teamAId
+              ? sides.teamAName
+              : sides.teamBName
             : null;
-          return { ...f, winnerTeamId, winnerTeamName: name ?? null };
+          return {
+            ...f,
+            teamAId: sides.teamAId,
+            teamBId: sides.teamBId,
+            teamAName: sides.teamAName ?? f.teamAName,
+            teamBName: sides.teamBName ?? f.teamBName,
+            winnerTeamId,
+            winnerTeamName: name ?? null,
+          };
         }),
       );
       setSuccess(winnerTeamId ? 'Winner saved — public bracket updated.' : 'Result cleared.');
@@ -96,8 +110,9 @@ export function AdminMatchResultsPage() {
   return (
     <AdminShell title="Match results">
       <p className="mb-4 text-sm text-paper/60">
-        Pick the winning team for each finished match. Losers show struck out on the public fixtures page. Requires
-        migrations <code className="text-paper/50">017</code> + <code className="text-paper/50">018</code> on Supabase.
+        Pick the winning team for each finished match (R1–R4). Later rounds fill in automatically once earlier
+        winners are recorded. Requires migrations <code className="text-paper/50">017</code> +{' '}
+        <code className="text-paper/50">018</code> on Supabase.
       </p>
 
       <div className="mb-6 flex flex-wrap gap-1 border border-paper/15 bg-ink-deep/50">
@@ -129,15 +144,35 @@ export function AdminMatchResultsPage() {
 
       <ul className="space-y-4">
         {poolFixtures.map((f) => {
-          const hydrated = f.poolCode == null ? hydrateShowdownRow(f, fixtures) : f;
+          const isShowdown = f.poolCode == null;
+          const poolSides = isShowdown
+            ? null
+            : resolvePoolFixtureSidesForAdmin(f, poolFixtures);
+          const showdownHydrated = isShowdown ? hydrateShowdownRow(f, fixtures) : null;
+
+          const teamAId = isShowdown ? showdownHydrated?.teamAId : poolSides?.teamAId;
+          const teamBId = isShowdown ? showdownHydrated?.teamBId : poolSides?.teamBId;
+          const teamA = isShowdown
+            ? (showdownHydrated?.teamAName ?? 'TBD')
+            : (poolSides?.teamAName ?? 'TBD');
+          const teamB = isShowdown
+            ? fixtureDisplayOpponentShowdown(f, fixtures)
+            : (poolSides?.teamBName ?? 'TBD');
+
           const code = fixtureMatchCode(f.label, f.matchOrder);
-          const teamA = hydrated.teamAName ?? fixtureDisplayOpponentA(f, poolFixtures);
-          const teamB =
-            f.poolCode == null
-              ? fixtureDisplayOpponentShowdown(f, fixtures)
-              : fixtureDisplayOpponentB(f, poolFixtures);
           const winner = fixtureWinnerName(f);
-          const playable = canRecordResult(f, fixtures);
+          const playable = isShowdown ? canRecordShowdown(f, fixtures) : Boolean(poolSides?.playable);
+          const blockReason = poolSides?.blockReason;
+
+          const sidesForRecord =
+            teamAId && teamBId
+              ? {
+                  teamAId,
+                  teamBId,
+                  teamAName: teamA,
+                  teamBName: teamB,
+                }
+              : null;
 
           return (
             <li key={f.id} className="register-panel px-5 py-5">
@@ -146,11 +181,11 @@ export function AdminMatchResultsPage() {
                   <p className="font-display text-xl text-floodlight-bright">{code}</p>
                   <p className="mt-1 text-xs text-paper/45">{f.label}</p>
                   <p className="mt-3 text-lg text-paper">
-                    <span className={f.winnerTeamId === f.teamAId ? 'font-bold text-floodlight-bright' : ''}>
+                    <span className={f.winnerTeamId === teamAId ? 'font-bold text-floodlight-bright' : ''}>
                       {teamA}
                     </span>
                     <span className="mx-2 text-paper/40">vs</span>
-                    <span className={f.winnerTeamId === f.teamBId ? 'font-bold text-floodlight-bright' : ''}>
+                    <span className={f.winnerTeamId === teamBId ? 'font-bold text-floodlight-bright' : ''}>
                       {teamB}
                     </span>
                   </p>
@@ -160,21 +195,21 @@ export function AdminMatchResultsPage() {
                 </div>
               </div>
 
-              {playable ? (
+              {playable && sidesForRecord ? (
                 <div className="mt-4 flex flex-wrap gap-2 border-t border-paper/10 pt-4">
                   <button
                     type="button"
                     disabled={recordingId === f.id}
-                    className={`btn-primary text-sm ${f.winnerTeamId === f.teamAId ? 'ring-2 ring-floodlight-bright' : ''}`}
-                    onClick={() => void record(f.id, hydrated.teamAId!)}
+                    className={`btn-primary text-sm ${f.winnerTeamId === teamAId ? 'ring-2 ring-floodlight-bright' : ''}`}
+                    onClick={() => void record(f.id, sidesForRecord.teamAId, sidesForRecord)}
                   >
                     {teamA} won
                   </button>
                   <button
                     type="button"
                     disabled={recordingId === f.id}
-                    className={`btn-primary text-sm ${f.winnerTeamId === f.teamBId ? 'ring-2 ring-floodlight-bright' : ''}`}
-                    onClick={() => void record(f.id, hydrated.teamBId!)}
+                    className={`btn-primary text-sm ${f.winnerTeamId === teamBId ? 'ring-2 ring-floodlight-bright' : ''}`}
+                    onClick={() => void record(f.id, sidesForRecord.teamBId, sidesForRecord)}
                   >
                     {teamB} won
                   </button>
@@ -183,7 +218,7 @@ export function AdminMatchResultsPage() {
                       type="button"
                       disabled={recordingId === f.id}
                       className="btn-outline text-sm"
-                      onClick={() => void record(f.id, null)}
+                      onClick={() => void record(f.id, null, sidesForRecord)}
                     >
                       Clear
                     </button>
@@ -191,7 +226,10 @@ export function AdminMatchResultsPage() {
                 </div>
               ) : (
                 <p className="mt-3 text-xs text-paper/45">
-                  Set both teams on Pools & fixtures before recording a result.
+                  {blockReason ??
+                    (isShowdown
+                      ? 'Set both Showdown teams on Pools & fixtures before recording a result.'
+                      : 'Set both teams on Pools & fixtures before recording a result.')}
                 </p>
               )}
             </li>

@@ -128,6 +128,10 @@ export async function adminLoadFixtures(): Promise<FixtureRow[]> {
 }
 
 export async function adminPatchShowdownTeams(fixtureId: string, teamAId: string, teamBId: string) {
+  return adminPatchFixtureTeams(fixtureId, teamAId, teamBId);
+}
+
+export async function adminPatchFixtureTeams(fixtureId: string, teamAId: string, teamBId: string) {
   const sb = requireSupabase();
   const { error } = await sb
     .from('tournament_fixtures')

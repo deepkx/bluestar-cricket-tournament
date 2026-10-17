@@ -33,6 +33,14 @@ export function resolveBracketRefName(fixtures: FixtureRow[], ref: string): stri
   return fixtureWinnerName(row);
 }
 
+/** Winner team id from a prior bracket match (for admin R2+ result entry). */
+export function resolveWinnerTeamId(fixtures: FixtureRow[], ref: string): string | null {
+  const parsed = parseBracketRef(ref);
+  if (!parsed) return null;
+  const row = findFixtureByRoundMatch(fixtures, parsed.round, parsed.matchNum);
+  return row?.winnerTeamId ?? null;
+}
+
 export function fixtureSideEliminated(
   row: FixtureRow,
   side: 'A' | 'B',
